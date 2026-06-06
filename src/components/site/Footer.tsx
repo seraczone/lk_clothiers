@@ -79,7 +79,7 @@ export function Footer() {
         <div className="hairline opacity-30 mb-6" />
         <div className="flex flex-wrap gap-4 justify-between text-[11px] uppercase tracking-[0.25em] text-background/50">
           <span>(c) 2026 LK Clothiers - Wuye, Abuja</span>
-          <span>Designed with intention.</span>
+          <span>Designed by Seraczone Technology Limited</span>
         </div>
       </div>
     </footer>
