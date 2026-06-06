@@ -13,7 +13,7 @@ export function Footer() {
               <img
                 src={logo}
                 alt="LK Clothiers"
-                className="h-20 w-44 object-contain brightness-125 contrast-125"
+                className="h-32 w-72 object-contain brightness-125 contrast-125"
               />
             </Link>
             <p className="mt-4 text-background/60 max-w-sm text-sm leading-relaxed">

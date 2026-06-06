@@ -16,7 +16,7 @@ export function Header() {
 
   return (
     <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-md bg-background/85 border-b border-border/60 transition-colors">
-      <div className="max-w-[1400px] mx-auto px-6 lg:px-12 h-16 flex items-center justify-between gap-4">
+      <div className="max-w-[1400px] mx-auto px-6 lg:px-12 h-20 flex items-center justify-between gap-4">
         <button
           className="md:hidden text-xs uppercase tracking-[0.25em]"
           onClick={() => setOpen((o) => !o)}
@@ -40,7 +40,7 @@ export function Header() {
           <img
             src={logo}
             alt="LK Clothiers"
-            className="h-11 w-28 object-contain mix-blend-multiply transition-transform duration-500 hover:scale-[1.03]"
+            className="h-16 w-40 object-contain mix-blend-multiply transition-transform duration-500 hover:scale-[1.03]"
           />
         </Link>
         <nav className="hidden md:flex gap-6 text-[11px] uppercase tracking-[0.2em] text-foreground/80 items-center">
