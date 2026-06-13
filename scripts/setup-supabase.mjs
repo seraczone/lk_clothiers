@@ -28,17 +28,16 @@ const assetMap = {
   "boubou-embellished-colors.jpeg": "boubou-embellished-colors.jpeg",
   "boys-kaftan-sage-tan.jpeg": "boys-kaftan-sage-tan.jpeg",
   "boys-kaftan-white.jpeg": "boys-kaftan-white.jpeg",
-  "cat-girls.jpg": "cat-girls.jpg",
+  "girls-purple-dress.jpeg": "girls-purple-dress.jpeg",
   "cat-boys.jpg": "cat-boys.jpg",
   "cat-glam.jpg": "cat-glam.jpg",
-  "cat-kids.jpg": "cat-kids.jpg",
   "cat-shirts.jpg": "cat-shirts.jpg",
   "cat-twopc.jpg": "cat-twopc.jpg",
   "cat-boubou.jpg": "cat-boubou.jpg",
   "p1.jpg": "p1.jpg",
   "p3.jpg": "p3.jpg",
   "p4.jpg": "p4.jpg",
-  "hero.jpg": "hero.jpg",
+  "hero-collection.png": "hero-collection.png",
   "shirt-dress-blue-front-back.jpeg": "shirt-dress-blue-front-back.jpeg",
   "shirt-dress-blue-hanger.jpeg": "shirt-dress-blue-hanger.jpeg",
   "shirt-dress-blue-model.jpeg": "shirt-dress-blue-model.jpeg",
@@ -61,7 +60,7 @@ const assetMap = {
 };
 
 const categories = [
-  { key: "girls", name: "Girls", image: "cat-girls.jpg", tagline: "Mini LK" },
+  { key: "girls", name: "Girls", image: "girls-purple-dress.jpeg", tagline: "Mini LK" },
   { key: "boys", name: "Boys", image: "boys-kaftan-sage-tan.jpeg", tagline: "Little gentlemen" },
   { key: "casual", name: "Casual", image: "cat-shirts.jpg", tagline: "Legacy everyday ease" },
   {
@@ -94,8 +93,8 @@ const products = [
     "Zara Mini Set",
     48000,
     "girls",
-    "cat-girls.jpg",
-    null,
+    "girls-purple-dress.jpeg",
+    ["girls-purple-dress.jpeg"],
     ["2-3y", "4-5y", "6-7y", "8-9y", "10-11y"],
     ["Ivory", "Peach"],
     "A coordinated two-piece for our littlest customers, in soft brushed cotton.",
@@ -109,8 +108,8 @@ const products = [
     "Lila Cream Dress",
     55000,
     "girls",
-    "cat-kids.jpg",
-    null,
+    "girls-purple-dress.jpeg",
+    ["girls-purple-dress.jpeg"],
     ["2-3y", "4-5y", "6-7y", "8-9y", "10-11y"],
     ["Cream"],
     "A breezy modest dress with hand-finished hems.",
@@ -139,7 +138,7 @@ const products = [
     "Omar Mini Kaftan",
     48000,
     "boys",
-    "cat-kids.jpg",
+    "boys-kaftan-white.jpeg",
     null,
     ["2-3y", "4-5y", "6-7y", "8-9y", "10-11y"],
     ["Ivory"],
@@ -336,13 +335,13 @@ async function ensureBuckets() {
 async function uploadAssets() {
   const urls = {};
   for (const [source, destination] of Object.entries(assetMap)) {
-    const bucket = source === "hero.jpg" ? "site-assets" : "product-images";
+    const bucket = source === "hero-collection.png" ? "site-assets" : "product-images";
     const filePath = path.join(process.cwd(), "src", "assets", source);
     const bytes = await readFile(filePath);
     const response = await storageFetch(`/object/${bucket}/${destination}`, {
       method: "POST",
       headers: {
-        "content-type": "image/jpeg",
+        "content-type": contentTypeFor(source),
         "x-upsert": "true",
       },
       body: bytes,
@@ -354,6 +353,14 @@ async function uploadAssets() {
       `${process.env.VITE_SUPABASE_URL}/storage/v1/object/public/${bucket}/${destination}`;
   }
   return urls;
+}
+
+function contentTypeFor(filename) {
+  const extension = path.extname(filename).toLowerCase();
+  if (extension === ".png") return "image/png";
+  if (extension === ".webp") return "image/webp";
+  if (extension === ".gif") return "image/gif";
+  return "image/jpeg";
 }
 
 async function storageFetch(pathname, init = {}) {

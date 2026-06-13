@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, type CSSProperties } from "react";
-import heroImg from "@/assets/hero.jpg";
+import heroImg from "@/assets/hero-collection.png";
 import catBoubou from "@/assets/cat-boubou.jpg";
 import { categories, newArrivals, bestSellers } from "@/lib/catalog";
 import { ProductCard } from "@/components/site/ProductCard";
@@ -299,7 +299,7 @@ function ProductGrid({
             </Link>
           )}
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
           {items.map((p, i) => (
             <ProductCard key={p.id} p={p} delay={i * 80} />
           ))}
@@ -470,7 +470,7 @@ function Instagram({ content }: { content: ContentState }) {
               src={img}
               alt="Instagram post"
               loading="lazy"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
             />
           </a>
         ))}

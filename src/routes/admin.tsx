@@ -540,7 +540,7 @@ function ProductEditor({
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    const normalizedId = slugify(draft.id || draft.name);
+    const normalizedId = product?.id ?? slugify(draft.id || draft.name);
     if (!normalizedId || !draft.name.trim()) {
       setError("Product name and SKU are required.");
       return;
@@ -570,6 +570,7 @@ function ProductEditor({
         price: parsedPrice,
         category: draft.category,
         image: draft.image.trim() || products[0]?.image || "",
+        gallery: draft.gallery,
         sizes: splitList(draft.sizes),
         colors: splitList(draft.colors),
         description: draft.description.trim(),
@@ -639,10 +640,11 @@ function ProductEditor({
               onChange={(value) => updateDraft("name", value)}
             />
             <Field
-              label="SKU / slug"
+              label={product ? "SKU / slug (locked)" : "SKU / slug"}
               value={draft.id}
               onChange={(value) => updateDraft("id", slugify(value))}
               placeholder="auto-generated-from-name"
+              disabled={Boolean(product)}
             />
             <Field
               label="Price"
@@ -794,7 +796,7 @@ function ProductEditor({
             className="inline-flex items-center gap-2 rounded-[6px] bg-[color:var(--accent)] px-4 py-2.5 text-xs uppercase tracking-[0.18em] text-white hover:bg-foreground"
           >
             <Save size={15} />
-            {isSaving ? "Saving" : "Save Product"}
+            {isSaving ? "Saving" : product ? "Update Product" : "Save Product"}
           </button>
         </div>
       </div>
@@ -1210,6 +1212,7 @@ function Field({
   type = "text",
   placeholder,
   className = "",
+  disabled = false,
 }: {
   label: string;
   value: string;
@@ -1217,6 +1220,7 @@ function Field({
   type?: string;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 }) {
   return (
     <label className={`block ${className}`}>
@@ -1227,8 +1231,9 @@ function Field({
         type={type}
         value={value}
         placeholder={placeholder}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-[6px] border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-foreground"
+        className="h-11 w-full rounded-[6px] border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-foreground disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
       />
     </label>
   );
