@@ -193,14 +193,6 @@ function Hero({ content }: { content: ContentState }) {
           </div>
         </div>
       </div>
-      <div className="absolute bottom-8 left-8 right-8 z-10 flex items-end justify-between text-xs uppercase tracking-[0.25em] text-white/90">
-        <span className="bg-foreground/70 backdrop-blur px-3 py-2">
-          {content.home.heroSeasonLabel}
-        </span>
-        <span className="bg-foreground/70 backdrop-blur px-3 py-2">
-          {content.home.heroLookLabel}
-        </span>
-      </div>
     </section>
   );
 }
