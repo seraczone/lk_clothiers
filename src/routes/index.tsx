@@ -1,13 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import heroImg from "@/assets/hero.jpg";
 import catBoubou from "@/assets/cat-boubou.jpg";
 import { categories, newArrivals, bestSellers } from "@/lib/catalog";
 import { ProductCard } from "@/components/site/ProductCard";
+import { useSiteContent } from "@/hooks/use-site-content";
+import type { ContentState } from "@/lib/admin-data";
 import { genericWhatsAppUrl, WHATSAPP_DISPLAY } from "@/lib/whatsapp";
-import vLinen2pc from "@/assets/v-linen-2pc.mp4.asset.json";
-import vCapeDress from "@/assets/v-cape-dress.mp4.asset.json";
-import vLinenPants from "@/assets/v-linen-pants.mp4.asset.json";
+import atelierBoardroomWeekend from "@/assets/atelier-boardroom-weekend.mp4";
+import atelierGirlsEid from "@/assets/atelier-girls-eid.mp4";
+import silkFlareVideo from "@/assets/silk-flare-video.mp4";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -29,54 +31,101 @@ export const Route = createFileRoute("/")({
 });
 
 const lookbookVideos = [
-  { src: vCapeDress.url, title: "Cape Dress", caption: "Silk & chiffon · fully lined" },
-  { src: vLinen2pc.url, title: "Linen 2pc Set", caption: "Shirt & pant · styled separately" },
-  { src: vLinenPants.url, title: "Linen Pants", caption: "Everyday ease · loungewear" },
+  { src: atelierBoardroomWeekend },
+  { src: atelierGirlsEid },
+  { src: silkFlareVideo },
 ];
 
-function VideoLookbook() {
+const scatterDirections = [
+  { x: -28, y: -18, rotate: -9 },
+  { x: 24, y: -22, rotate: 8 },
+  { x: -18, y: 24, rotate: 7 },
+  { x: 30, y: 18, rotate: -8 },
+  { x: 0, y: -30, rotate: 4 },
+  { x: -30, y: 8, rotate: -5 },
+];
+
+function ScatterText({
+  text,
+  className = "",
+  delayStep = 45,
+}: {
+  text: string;
+  className?: string;
+  delayStep?: number;
+}) {
+  return (
+    <span className={`scatter-text ${className}`}>
+      {text.split(" ").map((word, index) => {
+        const direction = scatterDirections[index % scatterDirections.length];
+        return (
+          <span
+            key={`${word}-${index}`}
+            className="scatter-word"
+            style={
+              {
+                "--scatter-x": `${direction.x}px`,
+                "--scatter-y": `${direction.y}px`,
+                "--scatter-rotate": `${direction.rotate}deg`,
+                "--scatter-delay": `${index * delayStep}ms`,
+              } as CSSProperties
+            }
+          >
+            {word}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+function VideoLookbook({ content }: { content: ContentState }) {
   return (
     <section className="px-6 lg:px-12 py-24 lg:py-32 bg-foreground text-background">
       <div className="max-w-[1400px] mx-auto">
         <div className="flex items-end justify-between mb-14 reveal">
           <div>
-            <p className="eyebrow mb-4 text-background/60">In Motion</p>
+            <p className="eyebrow mb-4 text-background/60">{content.home.lookbookEyebrow}</p>
             <h2 className="font-display text-4xl md:text-5xl lg:text-6xl">
-              The lookbook,
+              {content.home.lookbookTitle}
               <br />
-              <em className="italic text-[color:var(--accent)]">in motion</em>.
+              <em className="italic text-[color:var(--accent)]">{content.home.lookbookAccent}</em>.
             </h2>
           </div>
           <Link
             to="/shop"
             className="hidden md:inline-block lk-link text-xs uppercase tracking-[0.25em] text-background/80"
           >
-            Shop the edit →
+            {content.home.lookbookCta} →
           </Link>
         </div>
         <div className="grid md:grid-cols-3 gap-4 lg:gap-6">
-          {lookbookVideos.map((v, i) => (
-            <figure
-              key={i}
-              className="relative aspect-[9/16] overflow-hidden bg-background/10 reveal"
-              style={{ transitionDelay: `${i * 100}ms` }}
-            >
-              <video
-                src={v.src}
-                autoPlay
-                muted
-                loop
-                playsInline
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-              <figcaption className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-foreground/80 to-transparent text-background">
-                <p className="font-display text-xl">{v.title}</p>
-                <p className="text-[10px] uppercase tracking-[0.25em] opacity-80 mt-1">
-                  {v.caption}
-                </p>
-              </figcaption>
-            </figure>
-          ))}
+          {lookbookVideos.map((v, i) => {
+            const copy = content.home.lookbookVideos[i];
+            return (
+              <figure
+                key={i}
+                className="relative aspect-[9/16] overflow-hidden bg-background/10 reveal"
+                style={{ transitionDelay: `${i * 100}ms` }}
+              >
+                <video
+                  src={v.src}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <figcaption className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-foreground/80 to-transparent text-background">
+                  <p className="font-display text-xl">{copy?.title}</p>
+                  <p className="text-[10px] uppercase tracking-[0.25em] opacity-80 mt-1">
+                    {copy?.caption}
+                  </p>
+                </figcaption>
+              </figure>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -97,7 +146,7 @@ function useReveal() {
   return ref;
 }
 
-function Hero() {
+function Hero({ content }: { content: ContentState }) {
   return (
     <section className="relative min-h-[90svh]">
       <img
@@ -110,22 +159,22 @@ function Hero() {
       <div className="absolute inset-0 bg-gradient-to-r from-foreground/70 via-foreground/40 to-foreground/10" />
       <div className="relative z-10 flex items-end lg:items-center min-h-[90svh] px-6 lg:px-12 pb-16 lg:pb-0">
         <div className="lk-fade-up max-w-xl">
-          <p className="eyebrow mb-6 text-white/80">LK Clothiers · Wuye, Abuja</p>
+          <p className="eyebrow mb-6 text-white/80">{content.home.heroEyebrow}</p>
           <h1 className="font-display text-5xl md:text-6xl lg:text-7xl leading-[1.02] text-white">
-            Modest fashion,
+            {content.home.heroLineOne}
             <br />
-            <em className="italic text-[color:var(--accent)]">timeless</em> elegance.
+            <em className="italic text-[color:var(--accent)]">{content.home.heroAccent}</em>{" "}
+            {content.home.heroLineTwo}
           </h1>
           <p className="mt-6 text-base text-white/80 leading-relaxed max-w-sm">
-            Premium ready-to-wear for women, girls and boys — designed for the modern African
-            family.
+            {content.home.heroCopy}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               to="/shop"
               className="group inline-flex items-center gap-3 bg-[color:var(--accent)] text-white px-7 py-4 text-xs uppercase tracking-[0.25em] hover:bg-white hover:text-foreground transition-colors"
             >
-              Shop Collection
+              {content.home.primaryCta}
               <span className="transition-transform group-hover:translate-x-1">→</span>
             </Link>
             <a
@@ -134,33 +183,34 @@ function Hero() {
               rel="noreferrer"
               className="inline-flex items-center gap-3 border border-white/60 px-7 py-4 text-xs uppercase tracking-[0.25em] text-white hover:bg-white hover:text-foreground transition-colors"
             >
-              Chat on WhatsApp
+              {content.home.secondaryCta}
             </a>
           </div>
           <div className="mt-12 flex items-center gap-8 text-xs text-white/70">
-            <span>Est. 2019</span>
+            <span>{content.home.heroMetaLeft}</span>
             <span className="w-8 h-px bg-white/30" />
-            <span>Abuja · Nigeria</span>
+            <span>{content.home.heroMetaRight}</span>
           </div>
         </div>
       </div>
       <div className="absolute bottom-8 left-8 right-8 z-10 flex items-end justify-between text-xs uppercase tracking-[0.25em] text-white/90">
-        <span className="bg-foreground/70 backdrop-blur px-3 py-2">Autumn / Winter 26</span>
-        <span className="bg-foreground/70 backdrop-blur px-3 py-2">Look 01 · Ivory Kaftan</span>
+        <span className="bg-foreground/70 backdrop-blur px-3 py-2">
+          {content.home.heroSeasonLabel}
+        </span>
+        <span className="bg-foreground/70 backdrop-blur px-3 py-2">
+          {content.home.heroLookLabel}
+        </span>
       </div>
     </section>
   );
 }
 
-function Marquee() {
-  const items = [
-    "Free Delivery in Abuja",
-    "Nationwide Shipping",
-    "Atelier Appointments",
-    "Bespoke Tailoring",
-    "Modest by Design",
+function Marquee({ content }: { content: ContentState }) {
+  const row = [
+    ...content.home.marqueeItems,
+    ...content.home.marqueeItems,
+    ...content.home.marqueeItems,
   ];
-  const row = [...items, ...items, ...items];
   return (
     <div className="border-y border-border overflow-hidden bg-[color:var(--cream)] py-5">
       <div className="marquee-track flex gap-16 whitespace-nowrap text-xs uppercase tracking-[0.3em] text-foreground/70">
@@ -175,21 +225,21 @@ function Marquee() {
   );
 }
 
-function Categories() {
+function Categories({ content }: { content: ContentState }) {
   return (
     <section className="px-6 lg:px-12 py-24 lg:py-32 max-w-[1400px] mx-auto">
       <div className="flex items-end justify-between mb-14 reveal">
         <div>
-          <p className="eyebrow mb-4">The Collections</p>
+          <p className="eyebrow mb-4">{content.home.collectionsEyebrow}</p>
           <h2 className="font-display text-4xl md:text-5xl lg:text-6xl max-w-2xl leading-[1.05]">
-            Considered wardrobes for the whole family.
+            {content.home.collectionsTitle}
           </h2>
         </div>
         <Link
           to="/shop"
           className="hidden md:inline-block lk-link text-xs uppercase tracking-[0.25em]"
         >
-          View all →
+          {content.home.collectionsCta} →
         </Link>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
@@ -205,7 +255,9 @@ function Categories() {
               src={c.image}
               alt={`${c.name} collection`}
               loading="lazy"
-              className="w-full h-full object-cover"
+              className={`w-full h-full ${
+                c.key === "adire" || c.key === "silk" ? "object-contain" : "object-cover"
+              }`}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 via-foreground/10 to-transparent" />
             <div className="absolute bottom-0 inset-x-0 p-5 text-background">
@@ -257,7 +309,7 @@ function ProductGrid({
   );
 }
 
-function About() {
+function About({ content }: { content: ContentState }) {
   return (
     <section className="grid lg:grid-cols-2 bg-foreground text-background">
       <div className="relative min-h-[60svh] lg:min-h-[80svh]">
@@ -270,34 +322,24 @@ function About() {
       </div>
       <div className="flex items-center px-6 lg:px-20 py-24 lg:py-0">
         <div className="max-w-lg reveal">
-          <p className="eyebrow mb-6 text-background/60">Our Atelier</p>
+          <p className="eyebrow mb-6 text-background/60">{content.home.aboutEyebrow}</p>
           <h2 className="font-display text-4xl md:text-5xl lg:text-6xl leading-[1.05]">
-            Quality, modesty, <em className="italic text-[color:var(--accent)]">elegance</em>.
+            {content.home.aboutHeadline}
           </h2>
-          <p className="mt-8 text-background/70 leading-relaxed">
-            Founded in Abuja, LK Clothiers is a quiet study in modern modesty. Each piece is cut
-            from considered fabrics and finished by hand. We believe modest dress is not a
-            limitation, but a language of confidence.
-          </p>
+          <p className="mt-8 text-background/70 leading-relaxed">{content.home.aboutCopy}</p>
           <div className="mt-10 grid grid-cols-3 gap-6 text-background/80">
-            <div>
-              <p className="font-display text-3xl text-[color:var(--accent)]">6+</p>
-              <p className="text-[10px] uppercase tracking-[0.2em] mt-2">Years crafting</p>
-            </div>
-            <div>
-              <p className="font-display text-3xl text-[color:var(--accent)]">12k</p>
-              <p className="text-[10px] uppercase tracking-[0.2em] mt-2">Women dressed</p>
-            </div>
-            <div>
-              <p className="font-display text-3xl text-[color:var(--accent)]">36</p>
-              <p className="text-[10px] uppercase tracking-[0.2em] mt-2">States delivered</p>
-            </div>
+            {content.home.stats.map((stat) => (
+              <div key={stat.label}>
+                <p className="font-display text-3xl text-[color:var(--accent)]">{stat.value}</p>
+                <p className="text-[10px] uppercase tracking-[0.2em] mt-2">{stat.label}</p>
+              </div>
+            ))}
           </div>
           <Link
             to="/about"
             className="mt-10 inline-flex items-center gap-3 border border-background/40 px-7 py-4 text-xs uppercase tracking-[0.25em] hover:bg-background hover:text-foreground transition-colors"
           >
-            Read our story
+            {content.home.aboutCta}
           </Link>
         </div>
       </div>
@@ -305,30 +347,47 @@ function About() {
   );
 }
 
-const reasons = [
-  { t: "Premium Quality", d: "Hand-finished pieces in Italian and Turkish fabrics." },
-  { t: "Elegant Designs", d: "Timeless silhouettes, refined for the modern woman." },
-  { t: "Nationwide Delivery", d: "Express shipping to all 36 states in 2–5 days." },
-  { t: "Exceptional Service", d: "Personal styling and bespoke alterations on request." },
-];
-
-function Why() {
+function Why({ content }: { content: ContentState }) {
   return (
-    <section className="px-6 lg:px-12 py-24 lg:py-32 max-w-[1400px] mx-auto">
-      <p className="eyebrow mb-4 reveal">Why LK</p>
-      <h2 className="font-display text-4xl md:text-5xl mb-16 max-w-2xl reveal">
-        A quieter way to shop.
+    <section className="why-motion px-6 lg:px-12 py-24 lg:py-32 max-w-[1400px] mx-auto">
+      <p
+        className="eyebrow mb-4 reveal"
+        style={
+          {
+            "--reveal-x": "-26px",
+            "--reveal-y": "-18px",
+            "--reveal-rotate": "-5deg",
+          } as CSSProperties
+        }
+      >
+        <ScatterText text={content.home.whyEyebrow} />
+      </p>
+      <h2
+        className="font-display text-4xl md:text-5xl mb-16 max-w-2xl reveal"
+        style={
+          {
+            "--reveal-x": "32px",
+            "--reveal-y": "-22px",
+            "--reveal-rotate": "4deg",
+          } as CSSProperties
+        }
+      >
+        <ScatterText text={content.home.whyTitle} delayStep={38} />
       </h2>
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-px bg-border">
-        {reasons.map((r, i) => (
+        {content.home.reasons.map((r, i) => (
           <div
-            key={r.t}
+            key={r.title}
             className="bg-background p-8 lg:p-10 reveal"
             style={{ transitionDelay: `${i * 80}ms` }}
           >
             <p className="font-display text-[color:var(--accent)] text-2xl mb-6">0{i + 1}</p>
-            <h3 className="font-display text-2xl mb-3">{r.t}</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">{r.d}</p>
+            <h3 className="font-display text-2xl mb-3">
+              <ScatterText text={r.title} delayStep={55} />
+            </h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              <ScatterText text={r.description} delayStep={28} />
+            </p>
           </div>
         ))}
       </div>
@@ -336,47 +395,41 @@ function Why() {
   );
 }
 
-const testimonials = [
-  {
-    q: "My LK kaftan turned heads at every event of the season. The fabric, the cut — pure artistry.",
-    n: "Aisha A.",
-    c: "Abuja",
-  },
-  {
-    q: "Finally a modest brand that doesn't compromise on style. Their workwear has redefined my wardrobe.",
-    n: "Halima O.",
-    c: "Lagos",
-  },
-  {
-    q: "Bought matching pieces for my daughter and I. The quality is honestly worth every naira.",
-    n: "Fatima B.",
-    c: "Kano",
-  },
-];
-
-function Testimonials() {
+function Testimonials({ content }: { content: ContentState }) {
   return (
     <section className="px-6 lg:px-12 py-24 lg:py-32 bg-[color:var(--cream)]">
       <div className="max-w-[1400px] mx-auto">
-        <p className="eyebrow mb-4 reveal">Client Diary</p>
+        <p className="eyebrow mb-4 reveal">{content.home.testimonialsEyebrow}</p>
         <h2 className="font-display text-4xl md:text-5xl mb-16 max-w-2xl reveal">
-          Worn and loved.
+          {content.home.testimonialsTitle}
         </h2>
-        <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
-          {testimonials.map((t, i) => (
-            <figure
-              key={i}
-              className="bg-background p-8 lg:p-10 reveal"
-              style={{ transitionDelay: `${i * 100}ms` }}
+      </div>
+      <div className="testimonial-slider reveal overflow-hidden">
+        <div className="testimonial-track flex w-max">
+          {[0, 1].map((group) => (
+            <div
+              key={group}
+              aria-hidden={group === 1}
+              className="testimonial-group flex gap-6 pr-6 lg:gap-8 lg:pr-8"
             >
-              <div className="text-[color:var(--accent)] text-sm tracking-widest mb-6">★★★★★</div>
-              <blockquote className="font-display text-xl lg:text-2xl leading-snug text-foreground">
-                "{t.q}"
-              </blockquote>
-              <figcaption className="mt-8 text-xs uppercase tracking-[0.25em] text-muted-foreground">
-                {t.n} · <span className="text-foreground">{t.c}</span>
-              </figcaption>
-            </figure>
+              {content.home.testimonials.map((t, i) => (
+                <figure
+                  key={`${group}-${i}`}
+                  className="w-[min(82vw,380px)] flex-none bg-background p-8 lg:w-[420px] lg:p-10"
+                  style={{ transitionDelay: `${i * 100}ms` }}
+                >
+                  <div className="text-[color:var(--accent)] text-sm tracking-widest mb-6">
+                    ★★★★★
+                  </div>
+                  <blockquote className="font-display text-xl lg:text-2xl leading-snug text-foreground">
+                    "{t.quote}"
+                  </blockquote>
+                  <figcaption className="mt-8 text-xs uppercase tracking-[0.25em] text-muted-foreground">
+                    {t.name} · <span className="text-foreground">{t.city}</span>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
           ))}
         </div>
       </div>
@@ -384,15 +437,15 @@ function Testimonials() {
   );
 }
 
-function Instagram() {
+function Instagram({ content }: { content: ContentState }) {
   const imgs = categories.slice(0, 6).map((c) => c.image);
   const instagramUrl = "https://instagram.com/lk_clothiers";
   return (
     <section className="px-6 lg:px-12 py-24 lg:py-32 max-w-[1400px] mx-auto">
       <div className="flex items-end justify-between mb-12 reveal">
         <div>
-          <p className="eyebrow mb-4">Instagram</p>
-          <h2 className="font-display text-4xl md:text-5xl">@lk_clothiers</h2>
+          <p className="eyebrow mb-4">{content.home.instagramEyebrow}</p>
+          <h2 className="font-display text-4xl md:text-5xl">{content.home.instagramHandle}</h2>
         </div>
         <a
           href={instagramUrl}
@@ -400,7 +453,7 @@ function Instagram() {
           rel="noreferrer"
           className="lk-link text-xs uppercase tracking-[0.25em]"
         >
-          Follow us →
+          {content.home.instagramCta} →
         </a>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
@@ -426,38 +479,34 @@ function Instagram() {
   );
 }
 
-function VisitStore() {
+function VisitStore({ content }: { content: ContentState }) {
   return (
     <section className="grid lg:grid-cols-2">
       <div className="bg-[color:var(--cream)] flex items-center px-6 lg:px-20 py-24">
         <div className="max-w-md reveal">
-          <p className="eyebrow mb-4">Visit Our Atelier</p>
-          <h2 className="font-display text-4xl md:text-5xl mb-8">Showroom in Abuja.</h2>
+          <p className="eyebrow mb-4">{content.home.visitEyebrow}</p>
+          <h2 className="font-display text-4xl md:text-5xl mb-8">{content.home.visitTitle}</h2>
           <div className="space-y-5 text-sm text-foreground/80">
             <div>
               <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground mb-1">
-                Address
+                {content.home.addressLabel}
               </p>
-              <p>
-                Wuye District,
-                <br />
-                Abuja FCT, Nigeria
-              </p>
+              <p>{content.general.address}</p>
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground mb-1">
-                Hours
+                {content.home.hoursLabel}
               </p>
-              <p>Mon — Sat · 10:00 — 19:00</p>
+              <p>{content.general.hours}</p>
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground mb-1">
-                Contact
+                {content.home.contactLabel}
               </p>
               <p>
-                {WHATSAPP_DISPLAY}
+                {content.general.phoneDisplay || WHATSAPP_DISPLAY}
                 <br />
-                hello@lkclothiers.com
+                {content.general.email}
               </p>
             </div>
           </div>
@@ -465,7 +514,7 @@ function VisitStore() {
             to="/contact"
             className="mt-10 inline-flex items-center gap-3 bg-foreground text-background px-7 py-4 text-xs uppercase tracking-[0.25em] hover:bg-[color:var(--accent)] transition-colors"
           >
-            Get directions →
+            {content.home.directionsCta} →
           </Link>
         </div>
       </div>
@@ -498,9 +547,9 @@ function VisitStore() {
         </svg>
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
           <div className="w-4 h-4 rounded-full bg-[color:var(--accent)] mx-auto mb-3 ring-8 ring-[color:var(--accent)]/20" />
-          <p className="font-display text-xl">LK Atelier</p>
+          <p className="font-display text-xl">{content.home.mapTitle}</p>
           <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground mt-1">
-            Wuye, Abuja
+            {content.home.mapLocation}
           </p>
         </div>
       </div>
@@ -510,22 +559,23 @@ function VisitStore() {
 
 function Index() {
   const ref = useReveal();
+  const content = useSiteContent();
   return (
     <div ref={ref} className="scroll-smooth">
-      <Hero />
-      <Marquee />
-      <Categories />
+      <Hero content={content} />
+      <Marquee content={content} />
+      <Categories content={content} />
       <ProductGrid
         items={newArrivals()}
-        eyebrow="New Arrivals"
-        title="Fresh from the atelier."
-        cta={{ label: "Shop all new", to: "/shop" }}
+        eyebrow={content.home.newArrivalsEyebrow}
+        title={content.home.newArrivalsTitle}
+        cta={{ label: content.home.newArrivalsCta, to: "/shop" }}
       />
       <section className="px-6 lg:px-12 py-24 lg:py-32 max-w-[1400px] mx-auto">
         <div className="reveal mb-14">
-          <p className="eyebrow mb-4">Best Sellers</p>
+          <p className="eyebrow mb-4">{content.home.bestSellersEyebrow}</p>
           <h2 className="font-display text-4xl md:text-5xl lg:text-6xl max-w-3xl">
-            The pieces our clients return for, again and again.
+            {content.home.bestSellersTitle}
           </h2>
         </div>
         <div className="grid lg:grid-cols-3 gap-4 lg:gap-6">
@@ -534,12 +584,12 @@ function Index() {
           ))}
         </div>
       </section>
-      <About />
-      <VideoLookbook />
-      <Why />
-      <Testimonials />
-      <Instagram />
-      <VisitStore />
+      <About content={content} />
+      <VideoLookbook content={content} />
+      <Why content={content} />
+      <Testimonials content={content} />
+      <Instagram content={content} />
+      <VisitStore content={content} />
     </div>
   );
 }

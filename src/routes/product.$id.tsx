@@ -1,10 +1,11 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
-import { productById, products, ngn } from "@/lib/catalog";
+import { productById, ngn } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 import { productWhatsAppUrl } from "@/lib/whatsapp";
 import { useReveal } from "@/hooks/use-reveal";
+import { listAdminProducts, seedProducts, type AdminProduct } from "@/lib/admin-data";
 
 export const Route = createFileRoute("/product/$id")({
   head: ({ params }) => {
@@ -17,28 +18,63 @@ export const Route = createFileRoute("/product/$id")({
       ],
     };
   },
-  loader: ({ params }) => {
-    const p = productById(params.id);
-    if (!p) throw notFound();
-    return p;
-  },
+  loader: ({ params }) => params.id,
   component: ProductPage,
 });
 
 function ProductPage() {
-  const product = Route.useLoaderData();
+  const productId = Route.useLoaderData();
+  const [product, setProduct] = useState<AdminProduct | undefined>(() =>
+    seedProducts.find((item) => item.id === productId),
+  );
   const { add } = useCart();
-  const [size, setSize] = useState(product.sizes[0]);
-  const [color, setColor] = useState(product.colors[0]);
+  const [size, setSize] = useState("");
+  const [color, setColor] = useState("");
   const [qty, setQty] = useState(1);
   const [zoom, setZoom] = useState(false);
   const [added, setAdded] = useState(false);
-
-  const gallery = product.gallery ?? [product.image];
-  const [active, setActive] = useState(gallery[0]);
+  const [active, setActive] = useState("");
   const ref = useReveal<HTMLDivElement>();
 
-  const related = products
+  useEffect(() => {
+    let mounted = true;
+    listAdminProducts()
+      .then((loadedProducts) => {
+        if (!mounted) return;
+        setProduct(loadedProducts.find((item) => item.id === productId));
+      })
+      .catch(() => {
+        if (mounted) setProduct(seedProducts.find((item) => item.id === productId));
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [productId]);
+
+  useEffect(() => {
+    if (!product) return;
+    setSize(product.sizes[0] ?? "");
+    setColor(product.colors[0] ?? "");
+    setActive((product.gallery ?? [product.image])[0] ?? "");
+  }, [product]);
+
+  if (!product) {
+    return (
+      <div className="px-6 py-24 text-center">
+        <p className="eyebrow mb-3">Product</p>
+        <h1 className="font-display text-4xl">This product is not available.</h1>
+        <Link
+          to="/shop"
+          className="mt-6 inline-flex bg-foreground px-5 py-3 text-xs uppercase tracking-[0.2em] text-background"
+        >
+          Back to shop
+        </Link>
+      </div>
+    );
+  }
+
+  const gallery = product.gallery ?? [product.image];
+  const related = seedProducts
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 4);
 
@@ -71,7 +107,7 @@ function ProductPage() {
             className="relative aspect-[4/5] bg-[color:var(--cream)] overflow-hidden cursor-zoom-in"
             onClick={() => setZoom(true)}
           >
-            <img src={active} alt={product.name} className="w-full h-full object-cover" />
+            <img src={active} alt={product.name} className="w-full h-full object-contain" />
             {product.tag && (
               <span className="absolute top-4 left-4 bg-background/90 px-2.5 py-1 text-[10px] uppercase tracking-[0.2em]">
                 {product.tag}
@@ -86,7 +122,7 @@ function ProductPage() {
                   onClick={() => setActive(g)}
                   className={`w-20 h-24 overflow-hidden border ${active === g ? "border-foreground" : "border-border"}`}
                 >
-                  <img src={g} alt="" className="w-full h-full object-cover" />
+                  <img src={g} alt="" className="w-full h-full object-contain" />
                 </button>
               ))}
             </div>
@@ -189,7 +225,7 @@ function ProductPage() {
                   style={{ transitionDelay: `${i * 80}ms` }}
                 >
                   <div className="relative aspect-[4/5] overflow-hidden bg-background mb-3">
-                    <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                    <img src={p.image} alt={p.name} className="w-full h-full object-contain" />
                   </div>
                   <p className="font-display text-lg">{p.name}</p>
                   <p className="text-xs text-muted-foreground">{ngn(p.price)}</p>

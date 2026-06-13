@@ -1,18 +1,42 @@
-import catWomen from "@/assets/cat-women.jpg";
-import catGirls from "@/assets/cat-girls.jpg";
-import catBoys from "@/assets/cat-boys.jpg";
 import catGlam from "@/assets/cat-glam.jpg";
-import catWork from "@/assets/cat-work.jpg";
-import catKids from "@/assets/cat-kids.jpg";
-import catShirts from "@/assets/cat-shirts.jpg";
-import catTwoPc from "@/assets/cat-twopc.jpg";
 import catBoubou from "@/assets/cat-boubou.jpg";
-import p1 from "@/assets/p1.jpg";
-import p2 from "@/assets/p2.jpg";
-import p3 from "@/assets/p3.jpg";
+import girlsPurpleDress from "@/assets/girls-purple-dress.jpeg";
+import boubouEmbellishedColors from "@/assets/boubou-embellished-colors.jpeg";
+import shirtDressBlueHanger from "@/assets/shirt-dress-blue-hanger.jpeg";
+import shirtDressBlueModel from "@/assets/shirt-dress-blue-model.jpeg";
+import shirtDressBlueFrontBack from "@/assets/shirt-dress-blue-front-back.jpeg";
+import shirtDressPinkSet from "@/assets/shirt-dress-pink-set.jpeg";
+import boysKaftanSageTan from "@/assets/boys-kaftan-sage-tan.jpeg";
+import boysKaftanWhite from "@/assets/boys-kaftan-white.jpeg";
+import adireOrange from "@/assets/adire-orange.jpeg";
+import adireBlueBurgundy from "@/assets/adire-blue-burgundy.jpeg";
+import silkFlarePurple from "@/assets/silk-flare-purple.jpeg";
+import silkFlareTrio from "@/assets/silk-flare-trio.jpeg";
+import silkFlarePanel from "@/assets/silk-flare-panel.jpeg";
+import silkFlareQuartet from "@/assets/silk-flare-quartet.jpeg";
+import silkFlareRack from "@/assets/silk-flare-rack.jpeg";
+import silkFlareBrown from "@/assets/silk-flare-brown.jpeg";
+import silkFlareHangers from "@/assets/silk-flare-hangers.jpeg";
+import luxuryKaftanModels from "@/assets/luxury-kaftan-models.jpeg";
+import luxuryKaftanMannequin from "@/assets/luxury-kaftan-mannequin.jpeg";
+import luxuryKaftanDetail from "@/assets/luxury-kaftan-detail.jpeg";
+import luxuryKaftanHangers from "@/assets/luxury-kaftan-hangers.jpeg";
+import linenPantsMint from "@/assets/linen-pants-mint.jpeg";
+import linenLongShirtMint from "@/assets/linen-long-shirt-mint.jpeg";
+import linenSetMint from "@/assets/linen-set-mint.jpeg";
+import linenLongShirtYellow from "@/assets/linen-long-shirt-yellow.jpeg";
 import p4 from "@/assets/p4.jpg";
 
-export type CategoryKey = "women" | "girls" | "boys" | "casual" | "workwear" | "glam";
+export type CategoryKey =
+  | "girls"
+  | "boys"
+  | "shirt-dress"
+  | "luxury-kaftan"
+  | "linen"
+  | "glam"
+  | "boubou"
+  | "adire"
+  | "silk";
 
 export type Product = {
   id: string;
@@ -29,74 +53,39 @@ export type Product = {
 };
 
 export const categories: { key: CategoryKey; name: string; image: string; tagline: string }[] = [
-  { key: "women", name: "Women", image: catWomen, tagline: "Ready-to-wear" },
-  { key: "girls", name: "Girls", image: catGirls, tagline: "Mini LK" },
-  { key: "boys", name: "Boys", image: catBoys, tagline: "Little gentlemen" },
-  { key: "casual", name: "Casual", image: catShirts, tagline: "Everyday ease" },
-  { key: "workwear", name: "Workwear", image: catWork, tagline: "Quiet authority" },
+  { key: "girls", name: "Girls", image: girlsPurpleDress, tagline: "Mini LK" },
+  { key: "boys", name: "Boys", image: boysKaftanSageTan, tagline: "Little gentlemen" },
+  {
+    key: "shirt-dress",
+    name: "Shirt Dress",
+    image: shirtDressBlueHanger,
+    tagline: "Buttoned ease",
+  },
+  {
+    key: "luxury-kaftan",
+    name: "Luxury Kaftan",
+    image: luxuryKaftanModels,
+    tagline: "Embellished modest elegance",
+  },
+  { key: "linen", name: "Linen", image: linenSetMint, tagline: "Easy linen separates" },
   { key: "glam", name: "Glam", image: catGlam, tagline: "Evening statements" },
+  { key: "boubou", name: "Bou'bou", image: boubouEmbellishedColors, tagline: "Embellished ease" },
+  { key: "adire", name: "Adire", image: adireOrange, tagline: "Artisan dyed pieces" },
+  { key: "silk", name: "Silk", image: silkFlarePurple, tagline: "Silk flare dresses" },
 ];
 
 const WOMEN_SIZES = ["XS", "S", "M", "L", "XL"];
 const KIDS_SIZES = ["2-3y", "4-5y", "6-7y", "8-9y", "10-11y"];
 
 export const products: Product[] = [
-  // Women
-  {
-    id: "aanu-blouse",
-    name: "Aanu Silk Blouse",
-    price: 78000,
-    category: "women",
-    image: p1,
-    gallery: [p1, catShirts],
-    sizes: WOMEN_SIZES,
-    colors: ["Ivory", "Coffee"],
-    description:
-      "An understated silk blouse with a softly draped neckline. Cut from Italian sandwashed silk and finished by hand in our Abuja atelier.",
-    tag: "New",
-    bestSeller: true,
-  },
-  {
-    id: "layla-kaftan",
-    name: "Layla Coffee Kaftan",
-    price: 145000,
-    category: "women",
-    image: p2,
-    gallery: [p2, catBoubou],
-    sizes: WOMEN_SIZES,
-    colors: ["Coffee", "Ivory"],
-    description: "A liquid-soft kaftan in deep coffee crepe with hand-finished sleeves.",
-    bestSeller: true,
-  },
-  {
-    id: "sade-boubou",
-    name: "Sade Ivory Boubou",
-    price: 220000,
-    category: "women",
-    image: p4,
-    gallery: [p4, catBoubou],
-    sizes: WOMEN_SIZES,
-    colors: ["Ivory"],
-    description: "A statement ivory boubou crafted from raw silk with subtle tonal embroidery.",
-    tag: "Signature",
-  },
-  {
-    id: "amara-kaftan",
-    name: "Amara Statement Kaftan",
-    price: 185000,
-    category: "women",
-    image: catWomen,
-    sizes: WOMEN_SIZES,
-    colors: ["Ivory", "Sand"],
-    description: "A clean-lined kaftan for the modern woman. Made to be worn day to evening.",
-  },
   // Girls
   {
     id: "zara-mini",
     name: "Zara Mini Set",
     price: 48000,
     category: "girls",
-    image: catGirls,
+    image: girlsPurpleDress,
+    gallery: [girlsPurpleDress],
     sizes: KIDS_SIZES,
     colors: ["Ivory", "Peach"],
     description: "A coordinated two-piece for our littlest customers, in soft brushed cotton.",
@@ -107,107 +96,115 @@ export const products: Product[] = [
     name: "Lila Cream Dress",
     price: 55000,
     category: "girls",
-    image: catKids,
+    image: girlsPurpleDress,
+    gallery: [girlsPurpleDress],
     sizes: KIDS_SIZES,
     colors: ["Cream"],
     description: "A breezy modest dress with hand-finished hems.",
   },
   // Boys
   {
-    id: "kai-twopc",
-    name: "Kai Two-Piece",
-    price: 52000,
+    id: "boys-kaftan-sage-tan",
+    name: "Boys Kaftan",
+    price: 55000,
     category: "boys",
-    image: catBoys,
+    image: boysKaftanSageTan,
+    gallery: [boysKaftanSageTan, boysKaftanWhite],
     sizes: KIDS_SIZES,
-    colors: ["Coffee", "Ivory"],
-    description: "A tailored two-piece set for boys, cut from breathable cotton.",
+    colors: ["Sage", "Tan"],
+    description:
+      "A neatly finished boys kaftan with embroidered detailing and a polished modest fit.",
+    tag: "New",
   },
   {
-    id: "omar-kaftan",
-    name: "Omar Mini Kaftan",
-    price: 48000,
+    id: "boys-kaftan-white",
+    name: "Boys Kaftan",
+    price: 55000,
     category: "boys",
-    image: catKids,
+    image: boysKaftanWhite,
+    gallery: [boysKaftanWhite, boysKaftanSageTan],
     sizes: KIDS_SIZES,
-    colors: ["Ivory"],
-    description: "A miniature take on our signature kaftan.",
+    colors: ["White", "Sage"],
+    description:
+      "A neatly finished boys kaftan with embroidered detailing and a polished modest fit.",
   },
-  // Casual
+  // Shirt Dress
   {
-    id: "ivory-shirt",
-    name: "Ivory Atelier Shirt",
-    price: 62000,
-    category: "casual",
-    image: catShirts,
-    gallery: [catShirts, p1],
+    id: "blue-shirt-dress",
+    name: "Shirt Dress",
+    price: 60000,
+    category: "shirt-dress",
+    image: shirtDressBlueHanger,
+    gallery: [shirtDressBlueHanger, shirtDressBlueModel, shirtDressBlueFrontBack],
     sizes: WOMEN_SIZES,
-    colors: ["Ivory", "Sand"],
-    description: "A relaxed everyday shirt with a slightly oversized fit.",
+    colors: ["Blue"],
+    description: "A relaxed long shirt dress with button-front styling and a clean modest fit.",
+    tag: "New",
+  },
+  {
+    id: "pink-shirt-dress-set",
+    name: "Shirt Dress",
+    price: 60000,
+    category: "shirt-dress",
+    image: shirtDressPinkSet,
+    gallery: [shirtDressPinkSet],
+    sizes: WOMEN_SIZES,
+    colors: ["Pink", "Blue", "Grey", "Olive"],
+    description: "A soft striped shirt dress set with floral detail and easy modest styling.",
+  },
+  // Luxury Kaftan
+  {
+    id: "luxury-embroidered-kaftan",
+    name: "Luxury Embroidered Kaftan",
+    price: 85000,
+    category: "luxury-kaftan",
+    image: luxuryKaftanModels,
+    gallery: [luxuryKaftanModels, luxuryKaftanMannequin, luxuryKaftanDetail, luxuryKaftanHangers],
+    sizes: WOMEN_SIZES,
+    colors: ["Sage", "Charcoal", "Grey", "Black"],
+    description:
+      "A full-length embroidered kaftan with soft drape, statement sleeves and floral beadwork across the neckline and cuffs.",
+    tag: "New",
     bestSeller: true,
   },
+  // Linen
   {
-    id: "orange-set",
-    name: "Burnt Orange Two-Piece",
-    price: 98000,
-    category: "casual",
-    image: p3,
+    id: "linen-pants",
+    name: "Linen Pants",
+    price: 35000,
+    category: "linen",
+    image: linenPantsMint,
+    gallery: [linenPantsMint, linenSetMint],
     sizes: WOMEN_SIZES,
-    colors: ["Burnt Orange"],
-    description: "A confident two-piece in our signature burnt orange.",
+    colors: ["Mint"],
+    description:
+      "Wide-leg linen pants with an easy elastic waist, soft drape and relaxed modest fit.",
+    tag: "New",
   },
   {
-    id: "coffee-set",
-    name: "Coffee Co-ord Set",
-    price: 105000,
-    category: "casual",
-    image: catTwoPc,
+    id: "linen-long-shirt",
+    name: "Linen Long Shirt",
+    price: 45000,
+    category: "linen",
+    image: linenLongShirtMint,
+    gallery: [linenLongShirtMint, linenSetMint, linenLongShirtYellow],
     sizes: WOMEN_SIZES,
-    colors: ["Coffee"],
-    description: "A relaxed co-ord set with wide trousers and a tunic top.",
-  },
-  // Workwear
-  {
-    id: "camel-suit",
-    name: "Camel Tailored Suit",
-    price: 185000,
-    category: "workwear",
-    image: catWork,
-    sizes: WOMEN_SIZES,
-    colors: ["Camel"],
-    description: "A precise tailored suit for the modern professional.",
-  },
-  {
-    id: "ivory-tunic",
-    name: "Ivory Office Tunic",
-    price: 72000,
-    category: "workwear",
-    image: p1,
-    sizes: WOMEN_SIZES,
-    colors: ["Ivory"],
-    description: "A clean ivory tunic for the boardroom.",
-  },
-  {
-    id: "coffee-blazer",
-    name: "Coffee Blazer Set",
-    price: 155000,
-    category: "workwear",
-    image: p3,
-    sizes: WOMEN_SIZES,
-    colors: ["Coffee"],
-    description: "A relaxed blazer set in coffee crepe.",
+    colors: ["Mint", "Yellow", "Pink", "Beige", "Black", "Burgundy", "Purple"],
+    description:
+      "A flowing button-front linen long shirt with a soft collar, cuffed sleeves and versatile styling.",
+    tag: "New",
     bestSeller: true,
   },
   // Glam
   {
     id: "noir-boubou",
-    name: "Noir Glam Boubou",
+    name: "Noir Glam Bou'bou",
     price: 265000,
     category: "glam",
     image: catBoubou,
     sizes: WOMEN_SIZES,
     colors: ["Noir", "Coffee"],
-    description: "An evening boubou with tonal embroidery and silk lining.",
+    description: "An evening bou'bou with tonal embroidery and silk lining.",
   },
   {
     id: "gold-kaftan",
@@ -229,6 +226,124 @@ export const products: Product[] = [
     sizes: WOMEN_SIZES,
     colors: ["Ivory"],
     description: "A floor-sweeping ivory gown for occasion dressing.",
+  },
+  // Bou'bou
+  {
+    id: "embellished-boubou-colors",
+    name: "Embellished Bou'bou",
+    price: 85000,
+    category: "boubou",
+    image: boubouEmbellishedColors,
+    sizes: WOMEN_SIZES,
+    colors: ["Purple", "Teal", "Royal Blue", "Emerald Green", "Rose Pink", "Champagne Gold"],
+    description:
+      "An embellished bou'bou available in rich jewel tones with detailed neckline work.",
+    tag: "New",
+  },
+  // Adire
+  {
+    id: "adire-orange-flare",
+    name: "Adire Flare",
+    price: 55000,
+    category: "adire",
+    image: adireOrange,
+    gallery: [adireOrange, adireBlueBurgundy],
+    sizes: WOMEN_SIZES,
+    colors: ["Orange"],
+    description: "A vibrant adire flare dress with a full flowing skirt and matching scarf.",
+    tag: "New",
+  },
+  {
+    id: "adire-blue-burgundy-flare",
+    name: "Adire Flare",
+    price: 55000,
+    category: "adire",
+    image: adireBlueBurgundy,
+    gallery: [adireBlueBurgundy, adireOrange],
+    sizes: WOMEN_SIZES,
+    colors: ["Blue", "Burgundy"],
+    description: "A vibrant adire flare dress with a full flowing skirt and soft bell sleeves.",
+  },
+  // Silk
+  {
+    id: "silk-flare-purple",
+    name: "Silk Flare",
+    price: 35000,
+    category: "silk",
+    image: silkFlarePurple,
+    gallery: [silkFlarePurple, silkFlareRack, silkFlareTrio, silkFlarePanel, silkFlareQuartet],
+    sizes: WOMEN_SIZES,
+    colors: ["Purple"],
+    description: "A flowing silk flare dress with a soft drape and statement patterned finish.",
+    tag: "New",
+    bestSeller: true,
+  },
+  {
+    id: "silk-flare-trio",
+    name: "Silk Flare",
+    price: 35000,
+    category: "silk",
+    image: silkFlareTrio,
+    gallery: [silkFlareTrio, silkFlarePurple, silkFlareRack, silkFlarePanel, silkFlareQuartet],
+    sizes: WOMEN_SIZES,
+    colors: ["Lilac", "Gold", "Mauve"],
+    description: "A flowing silk flare dress with a soft drape and statement patterned finish.",
+    tag: "New",
+  },
+  {
+    id: "silk-flare-panel",
+    name: "Silk Flare",
+    price: 35000,
+    category: "silk",
+    image: silkFlarePanel,
+    gallery: [silkFlarePanel, silkFlarePurple, silkFlareTrio, silkFlareHangers, silkFlareQuartet],
+    sizes: WOMEN_SIZES,
+    colors: ["Plum", "Sage"],
+    description: "A flowing silk flare dress with a soft drape and statement patterned finish.",
+  },
+  {
+    id: "silk-flare-quartet",
+    name: "Silk Flare",
+    price: 35000,
+    category: "silk",
+    image: silkFlareQuartet,
+    gallery: [silkFlareQuartet, silkFlareRack, silkFlarePurple, silkFlareTrio, silkFlarePanel],
+    sizes: WOMEN_SIZES,
+    colors: ["Burgundy", "Plum"],
+    description: "A flowing silk flare dress with a soft drape and statement patterned finish.",
+  },
+  {
+    id: "silk-flare-rack",
+    name: "Silk Flare",
+    price: 35000,
+    category: "silk",
+    image: silkFlareRack,
+    gallery: [silkFlareRack, silkFlarePurple, silkFlareBrown, silkFlareHangers],
+    sizes: WOMEN_SIZES,
+    colors: ["Purple", "Green", "Orange", "Red"],
+    description: "A flowing silk flare dress with a soft drape and statement patterned finish.",
+  },
+  {
+    id: "silk-flare-brown",
+    name: "Silk Flare",
+    price: 35000,
+    category: "silk",
+    image: silkFlareBrown,
+    gallery: [silkFlareBrown, silkFlareRack, silkFlarePurple],
+    sizes: WOMEN_SIZES,
+    colors: ["Brown"],
+    description: "A flowing silk flare dress with a soft drape and statement patterned finish.",
+  },
+  {
+    id: "silk-flare-hangers",
+    name: "Silk Flare",
+    price: 35000,
+    category: "silk",
+    image: silkFlareHangers,
+    gallery: [silkFlareHangers, silkFlarePurple, silkFlareRack],
+    sizes: WOMEN_SIZES,
+    colors: ["Purple", "Pink", "Blue", "Yellow"],
+    description: "A flowing silk flare dress with a soft drape and statement patterned finish.",
   },
 ];
 

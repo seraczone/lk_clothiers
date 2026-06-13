@@ -1,9 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import logo from "@/assets/lk-logo.png";
+import { useSiteContent } from "@/hooks/use-site-content";
 import { categories } from "@/lib/catalog";
 import { genericWhatsAppUrl } from "@/lib/whatsapp";
 
 export function Footer() {
+  const content = useSiteContent();
+
   return (
     <footer className="bg-foreground text-background pt-20 pb-10 px-6 lg:px-12">
       <div className="max-w-[1400px] mx-auto">
@@ -17,15 +20,15 @@ export function Footer() {
               />
             </Link>
             <p className="mt-4 text-background/60 max-w-sm text-sm leading-relaxed">
-              Premium modest fashion for the modern African family. Crafted with intention in Abuja.
+              {content.general.footerCopy}
             </p>
             <form className="mt-8 flex gap-3 max-w-sm" onSubmit={(e) => e.preventDefault()}>
               <input
                 className="flex-1 bg-transparent border border-background/30 px-4 py-3 text-sm placeholder:text-background/40 focus:outline-none focus:border-[color:var(--accent)] transition-colors"
-                placeholder="Your email for new drops"
+                placeholder={content.general.newsletterPlaceholder}
               />
               <button className="bg-[color:var(--accent)] text-background px-5 text-xs uppercase tracking-[0.25em] hover:bg-background hover:text-foreground transition-colors">
-                Join
+                {content.general.newsletterButton}
               </button>
             </form>
           </div>
@@ -78,8 +81,8 @@ export function Footer() {
         </div>
         <div className="hairline opacity-30 mb-6" />
         <div className="flex flex-wrap gap-4 justify-between text-[11px] uppercase tracking-[0.25em] text-background/50">
-          <span>(c) 2026 LK Clothiers - Wuye, Abuja</span>
-          <span>Designed by Seraczone Technology Limited</span>
+          <span>{content.general.copyright}</span>
+          <span>{content.general.credit}</span>
         </div>
       </div>
     </footer>

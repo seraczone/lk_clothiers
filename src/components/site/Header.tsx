@@ -4,6 +4,7 @@ import { useCart } from "@/lib/cart";
 import logo from "@/assets/lk-logo.png";
 
 const primaryLinks = [
+  { to: "/", label: "Home", exact: true },
   { to: "/shop", label: "Shop" },
   { to: "/about", label: "Atelier" },
   { to: "/contact", label: "Visit" },
@@ -25,11 +26,12 @@ export function Header() {
           {open ? "Close" : "Menu"}
         </button>
         <nav className="hidden md:flex gap-6 text-[11px] uppercase tracking-[0.2em] text-foreground/80">
-          {primaryLinks.slice(0, 2).map((l) => (
+          {primaryLinks.slice(0, 3).map((l) => (
             <Link
               key={l.to}
               to={l.to}
               className="lk-link"
+              activeOptions={"exact" in l ? { exact: l.exact } : undefined}
               activeProps={{ className: "lk-link text-[color:var(--accent)]" }}
             >
               {l.label}
@@ -44,11 +46,12 @@ export function Header() {
           />
         </Link>
         <nav className="hidden md:flex gap-6 text-[11px] uppercase tracking-[0.2em] text-foreground/80 items-center">
-          {primaryLinks.slice(2).map((l) => (
+          {primaryLinks.slice(3).map((l) => (
             <Link
               key={l.to}
               to={l.to}
               className="lk-link"
+              activeOptions={"exact" in l ? { exact: l.exact } : undefined}
               activeProps={{ className: "lk-link text-[color:var(--accent)]" }}
             >
               {l.label}
@@ -66,7 +69,13 @@ export function Header() {
         <div className="md:hidden border-t border-border bg-background">
           <div className="px-6 py-4 flex flex-col gap-3 text-sm uppercase tracking-[0.2em]">
             {primaryLinks.map((l) => (
-              <Link key={l.to} to={l.to} onClick={() => setOpen(false)} className="py-1">
+              <Link
+                key={l.to}
+                to={l.to}
+                onClick={() => setOpen(false)}
+                className="py-1"
+                activeOptions={"exact" in l ? { exact: l.exact } : undefined}
+              >
                 {l.label}
               </Link>
             ))}

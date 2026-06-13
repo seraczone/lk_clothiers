@@ -48,7 +48,7 @@ export function ProductCard({ p, delay = 0 }: { p: Product; delay?: number }) {
         params={{ id: p.id }}
         className="block relative aspect-[4/5] overflow-hidden bg-[color:var(--cream)] mb-3"
       >
-        <img src={p.image} alt={p.name} loading="lazy" className="w-full h-full object-cover" />
+        <img src={p.image} alt={p.name} loading="lazy" className="w-full h-full object-contain" />
         <div className="absolute inset-0 bg-gradient-to-t from-foreground/45 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         {p.tag && (
           <span className="absolute top-3 left-3 bg-background/90 px-2.5 py-1 text-[10px] uppercase tracking-[0.2em]">
@@ -68,14 +68,14 @@ export function ProductCard({ p, delay = 0 }: { p: Product; delay?: number }) {
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button
           onClick={handleAdd}
-          className="bg-[color:var(--accent)] text-white px-3 py-2.5 text-[10px] uppercase tracking-[0.2em] hover:bg-foreground transition-colors"
+          className="min-h-10 bg-[color:var(--accent)] px-2 py-2.5 text-[9px] uppercase tracking-[0.14em] text-white transition-colors hover:bg-foreground sm:px-3 sm:text-[10px] sm:tracking-[0.2em]"
         >
           {added ? "Added" : "Add to Bag"}
         </button>
         <Link
           to="/product/$id"
           params={{ id: p.id }}
-          className="border border-foreground text-center px-3 py-2.5 text-[10px] uppercase tracking-[0.2em] hover:bg-foreground hover:text-background transition-colors"
+          className="min-h-10 border border-foreground px-2 py-2.5 text-center text-[9px] uppercase tracking-[0.14em] transition-colors hover:bg-foreground hover:text-background sm:px-3 sm:text-[10px] sm:tracking-[0.2em]"
         >
           Details
         </Link>
@@ -84,9 +84,9 @@ export function ProductCard({ p, delay = 0 }: { p: Product; delay?: number }) {
         href={productWhatsAppUrl(p.name, p.price, p.colors[0], p.sizes[0])}
         target="_blank"
         rel="noreferrer"
-        className="mt-2 border border-[color:var(--accent)] text-[color:var(--accent)] text-center px-3 py-2.5 text-[10px] uppercase tracking-[0.2em] hover:bg-[color:var(--accent)] hover:text-white transition-colors"
+        className="mt-2 min-h-10 border border-[color:var(--accent)] px-2 py-2.5 text-center text-[9px] uppercase tracking-[0.14em] text-[color:var(--accent)] transition-colors hover:bg-[color:var(--accent)] hover:text-white sm:px-3 sm:text-[10px] sm:tracking-[0.2em]"
       >
-        Checkout on WhatsApp
+        WhatsApp Checkout
       </a>
     </div>
   );

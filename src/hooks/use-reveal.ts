@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-export function useReveal<T extends HTMLElement>() {
+export function useReveal<T extends HTMLElement>(observeKey = "") {
   const ref = useRef<T>(null);
 
   useEffect(() => {
@@ -19,7 +19,7 @@ export function useReveal<T extends HTMLElement>() {
 
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, []);
+  }, [observeKey]);
 
   return ref;
 }

@@ -1,8 +1,10 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
-import { categories, productsByCategory, type CategoryKey } from "@/lib/catalog";
+import { categories, type CategoryKey } from "@/lib/catalog";
 import { ProductCard } from "@/components/site/ProductCard";
 import { useReveal } from "@/hooks/use-reveal";
+import { listAdminProducts, seedProducts, type AdminProduct } from "@/lib/admin-data";
 
 export const Route = createFileRoute("/shop/$category")({
   head: ({ params }) => {
@@ -24,17 +26,53 @@ export const Route = createFileRoute("/shop/$category")({
 });
 
 function CategoryPage() {
-  const ref = useReveal<HTMLDivElement>();
   const cat = Route.useLoaderData();
-  const items = productsByCategory(cat.key as CategoryKey);
+  const isAdire = cat.key === "adire";
+  const [items, setItems] = useState<AdminProduct[]>(
+    seedProducts.filter(
+      (product) => product.status === "Live" && product.category === (cat.key as CategoryKey),
+    ),
+  );
+
+  useEffect(() => {
+    let mounted = true;
+    listAdminProducts()
+      .then((loadedProducts) => {
+        if (!mounted) return;
+        setItems(
+          loadedProducts.filter(
+            (product) => product.status === "Live" && product.category === (cat.key as CategoryKey),
+          ),
+        );
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setItems(
+          seedProducts.filter(
+            (product) => product.status === "Live" && product.category === (cat.key as CategoryKey),
+          ),
+        );
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [cat.key]);
+  const revealKey = items.map((product) => product.id).join("|");
+  const ref = useReveal<HTMLDivElement>(`${cat.key}:${revealKey}`);
 
   return (
     <div ref={ref}>
-      <header className="relative h-[44svh] min-h-[320px] bg-[color:var(--cream)] overflow-hidden">
+      <header
+        className={`relative bg-[color:var(--cream)] overflow-hidden ${
+          isAdire ? "h-[72svh] min-h-[620px]" : "h-[44svh] min-h-[320px]"
+        }`}
+      >
         <img
           src={cat.image}
           alt=""
-          className="absolute inset-0 w-full h-full object-cover opacity-80"
+          className={`absolute inset-0 w-full h-full opacity-80 ${
+            isAdire ? "object-cover object-center" : "object-cover"
+          }`}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background/75 via-background/20 to-transparent" />
         <div
