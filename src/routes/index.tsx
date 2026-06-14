@@ -315,12 +315,12 @@ function ProductGrid({
 function About({ content }: { content: ContentState }) {
   return (
     <section className="grid lg:grid-cols-2 bg-foreground text-background">
-      <div className="relative min-h-[60svh] lg:min-h-[80svh]">
+      <div className="relative min-h-[60svh] overflow-hidden bg-[#ed6a12] lg:min-h-[80svh]">
         <img
           src={amaraPrintDressFront}
           alt="LK atelier"
           loading="lazy"
-          className="absolute inset-0 w-full h-full object-contain opacity-90"
+          className="absolute inset-0 h-full w-full object-contain object-center"
         />
       </div>
       <div className="flex items-center px-6 lg:px-20 py-24 lg:py-0">
