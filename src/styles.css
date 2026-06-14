@@ -278,6 +278,11 @@
     transform: scale(1.06);
     filter: brightness(0.95);
   }
+  .hero-slide {
+    opacity: 0;
+    animation: hero-carousel 18s ease-in-out infinite;
+    will-change: opacity, transform;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     .reveal,
@@ -286,6 +291,7 @@
     .collection-tile img,
     .lk-fade-up,
     .marquee-track,
+    .hero-slide,
     .testimonial-track,
     .why-motion .reveal.is-in .scatter-word {
       animation: none !important;
@@ -293,6 +299,22 @@
       transform: none !important;
       opacity: 1 !important;
       filter: none !important;
+    }
+    .hero-slide:not(:first-child) {
+      display: none !important;
+    }
+  }
+
+  @keyframes hero-carousel {
+    0%,
+    30% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    38%,
+    100% {
+      opacity: 0;
+      transform: scale(1.045);
     }
   }
 

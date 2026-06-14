@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { productById, ngn } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 import { productWhatsAppUrl } from "@/lib/whatsapp";
 import { useReveal } from "@/hooks/use-reveal";
-import { listAdminProducts, seedProducts, type AdminProduct } from "@/lib/admin-data";
+import { seedProducts, type AdminProduct } from "@/lib/admin-data";
+import { useStoreProducts } from "@/hooks/use-store-products";
 
 export const Route = createFileRoute("/product/$id")({
   head: ({ params }) => {
@@ -24,8 +25,12 @@ export const Route = createFileRoute("/product/$id")({
 
 function ProductPage() {
   const productId = Route.useLoaderData();
-  const [product, setProduct] = useState<AdminProduct | undefined>(() =>
-    seedProducts.find((item) => item.id === productId),
+  const { products, isLoading } = useStoreProducts();
+  const product = useMemo(
+    () =>
+      products.find((item) => item.id === productId) ??
+      (isLoading ? seedProducts.find((item) => item.id === productId) : undefined),
+    [isLoading, productId, products],
   );
   const { add } = useCart();
   const [size, setSize] = useState("");
@@ -35,21 +40,6 @@ function ProductPage() {
   const [added, setAdded] = useState(false);
   const [active, setActive] = useState("");
   const ref = useReveal<HTMLDivElement>();
-
-  useEffect(() => {
-    let mounted = true;
-    listAdminProducts()
-      .then((loadedProducts) => {
-        if (!mounted) return;
-        setProduct(loadedProducts.find((item) => item.id === productId));
-      })
-      .catch(() => {
-        if (mounted) setProduct(seedProducts.find((item) => item.id === productId));
-      });
-    return () => {
-      mounted = false;
-    };
-  }, [productId]);
 
   useEffect(() => {
     if (!product) return;
@@ -74,7 +64,7 @@ function ProductPage() {
   }
 
   const gallery = product.gallery ?? [product.image];
-  const related = seedProducts
+  const related = products
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 4);
 

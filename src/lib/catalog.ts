@@ -1,31 +1,75 @@
-import catGlam from "@/assets/cat-glam.jpg";
-import catBoubou from "@/assets/cat-boubou.jpg";
-import girlsPurpleDress from "@/assets/girls-purple-dress.jpeg";
-import boubouEmbellishedColors from "@/assets/boubou-embellished-colors.jpeg";
-import shirtDressBlueHanger from "@/assets/shirt-dress-blue-hanger.jpeg";
-import shirtDressBlueModel from "@/assets/shirt-dress-blue-model.jpeg";
-import shirtDressBlueFrontBack from "@/assets/shirt-dress-blue-front-back.jpeg";
-import shirtDressPinkSet from "@/assets/shirt-dress-pink-set.jpeg";
-import boysKaftanSageTan from "@/assets/boys-kaftan-sage-tan.jpeg";
-import boysKaftanWhite from "@/assets/boys-kaftan-white.jpeg";
-import adireOrange from "@/assets/adire-orange.jpeg";
-import adireBlueBurgundy from "@/assets/adire-blue-burgundy.jpeg";
-import silkFlarePurple from "@/assets/silk-flare-purple.jpeg";
-import silkFlareTrio from "@/assets/silk-flare-trio.jpeg";
-import silkFlarePanel from "@/assets/silk-flare-panel.jpeg";
-import silkFlareQuartet from "@/assets/silk-flare-quartet.jpeg";
-import silkFlareRack from "@/assets/silk-flare-rack.jpeg";
-import silkFlareBrown from "@/assets/silk-flare-brown.jpeg";
-import silkFlareHangers from "@/assets/silk-flare-hangers.jpeg";
-import luxuryKaftanModels from "@/assets/luxury-kaftan-models.jpeg";
-import luxuryKaftanMannequin from "@/assets/luxury-kaftan-mannequin.jpeg";
-import luxuryKaftanDetail from "@/assets/luxury-kaftan-detail.jpeg";
-import luxuryKaftanHangers from "@/assets/luxury-kaftan-hangers.jpeg";
-import linenPantsMint from "@/assets/linen-pants-mint.jpeg";
-import linenLongShirtMint from "@/assets/linen-long-shirt-mint.jpeg";
-import linenSetMint from "@/assets/linen-set-mint.jpeg";
-import linenLongShirtYellow from "@/assets/linen-long-shirt-yellow.jpeg";
-import p4 from "@/assets/p4.jpg";
+import amaraPrintDressFront from "@/assets/amara-print-dress-front.png";
+import amaraPrintDressPrimary from "@/assets/amara-print-dress-primary.png";
+import amaraPrintDressSide from "@/assets/amara-print-dress-side.png";
+import girlDressesAsset from "@/assets/girl-dresses.png";
+
+const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, "");
+
+const productImage = (filename: string) =>
+  supabaseUrl
+    ? `${supabaseUrl}/storage/v1/object/public/product-images/${filename}`
+    : `/assets/${filename}`;
+
+export const catalogImages = {
+  adireBlueBurgundy: productImage("adire-blue-burgundy.jpeg"),
+  adireOrange: productImage("adire-orange.jpeg"),
+  amaraPrintDressFront,
+  amaraPrintDressPrimary,
+  amaraPrintDressSide,
+  boubouEmbellishedColors: productImage("boubou-embellished-colors.jpeg"),
+  boysKaftanSageTan: productImage("boys-kaftan-sage-tan.jpeg"),
+  boysKaftanWhite: productImage("boys-kaftan-white.jpeg"),
+  catBoubou: productImage("cat-boubou.jpg"),
+  girlDresses: girlDressesAsset,
+  linenLongShirtMint: productImage("linen-long-shirt-mint.jpeg"),
+  linenLongShirtYellow: productImage("linen-long-shirt-yellow.jpeg"),
+  linenPantsMint: productImage("linen-pants-mint.jpeg"),
+  linenSetMint: productImage("linen-set-mint.jpeg"),
+  luxuryKaftanDetail: productImage("luxury-kaftan-detail.jpeg"),
+  luxuryKaftanHangers: productImage("luxury-kaftan-hangers.jpeg"),
+  luxuryKaftanMannequin: productImage("luxury-kaftan-mannequin.jpeg"),
+  luxuryKaftanModels: productImage("luxury-kaftan-models.jpeg"),
+  shirtDressBlueFrontBack: productImage("shirt-dress-blue-front-back.jpeg"),
+  shirtDressBlueHanger: productImage("shirt-dress-blue-hanger.jpeg"),
+  shirtDressBlueModel: productImage("shirt-dress-blue-model.jpeg"),
+  shirtDressPinkSet: productImage("shirt-dress-pink-set.jpeg"),
+  silkFlareBrown: productImage("silk-flare-brown.jpeg"),
+  silkFlareHangers: productImage("silk-flare-hangers.jpeg"),
+  silkFlarePanel: productImage("silk-flare-panel.jpeg"),
+  silkFlarePurple: productImage("silk-flare-purple.jpeg"),
+  silkFlareQuartet: productImage("silk-flare-quartet.jpeg"),
+  silkFlareRack: productImage("silk-flare-rack.jpeg"),
+  silkFlareTrio: productImage("silk-flare-trio.jpeg"),
+};
+
+const {
+  adireBlueBurgundy,
+  adireOrange,
+  boubouEmbellishedColors,
+  boysKaftanSageTan,
+  boysKaftanWhite,
+  catBoubou,
+  girlDresses,
+  linenLongShirtMint,
+  linenLongShirtYellow,
+  linenPantsMint,
+  linenSetMint,
+  luxuryKaftanDetail,
+  luxuryKaftanHangers,
+  luxuryKaftanMannequin,
+  luxuryKaftanModels,
+  shirtDressBlueFrontBack,
+  shirtDressBlueHanger,
+  shirtDressBlueModel,
+  shirtDressPinkSet,
+  silkFlareBrown,
+  silkFlareHangers,
+  silkFlarePanel,
+  silkFlarePurple,
+  silkFlareQuartet,
+  silkFlareRack,
+  silkFlareTrio,
+} = catalogImages;
 
 export type CategoryKey =
   | "girls"
@@ -33,7 +77,6 @@ export type CategoryKey =
   | "shirt-dress"
   | "luxury-kaftan"
   | "linen"
-  | "glam"
   | "boubou"
   | "adire"
   | "silk";
@@ -53,7 +96,7 @@ export type Product = {
 };
 
 export const categories: { key: CategoryKey; name: string; image: string; tagline: string }[] = [
-  { key: "girls", name: "Girls", image: girlsPurpleDress, tagline: "Mini LK" },
+  { key: "girls", name: "Girls", image: girlDresses, tagline: "Mini LK" },
   { key: "boys", name: "Boys", image: boysKaftanSageTan, tagline: "Little gentlemen" },
   {
     key: "shirt-dress",
@@ -68,7 +111,6 @@ export const categories: { key: CategoryKey; name: string; image: string; taglin
     tagline: "Embellished modest elegance",
   },
   { key: "linen", name: "Linen", image: linenSetMint, tagline: "Easy linen separates" },
-  { key: "glam", name: "Glam", image: catGlam, tagline: "Evening statements" },
   { key: "boubou", name: "Bou'bou", image: boubouEmbellishedColors, tagline: "Embellished ease" },
   { key: "adire", name: "Adire", image: adireOrange, tagline: "Artisan dyed pieces" },
   { key: "silk", name: "Silk", image: silkFlarePurple, tagline: "Silk flare dresses" },
@@ -80,27 +122,30 @@ const KIDS_SIZES = ["2-3y", "4-5y", "6-7y", "8-9y", "10-11y"];
 export const products: Product[] = [
   // Girls
   {
-    id: "zara-mini",
-    name: "Zara Mini Set",
-    price: 48000,
+    id: "girl-dresses",
+    name: "Girl Dresses",
+    price: 55000,
     category: "girls",
-    image: girlsPurpleDress,
-    gallery: [girlsPurpleDress],
+    image: girlDresses,
+    gallery: [girlDresses],
     sizes: KIDS_SIZES,
-    colors: ["Ivory", "Peach"],
-    description: "A coordinated two-piece for our littlest customers, in soft brushed cotton.",
+    colors: ["Burgundy"],
+    description:
+      "A polished girls dress with puff sleeves, button detailing and a matching headwrap.",
     tag: "New",
   },
   {
-    id: "lila-dress",
-    name: "Lila Cream Dress",
-    price: 55000,
+    id: "amara-print-dress",
+    name: "Amara Print Dress",
+    price: 30000,
     category: "girls",
-    image: girlsPurpleDress,
-    gallery: [girlsPurpleDress],
+    image: amaraPrintDressPrimary,
+    gallery: [amaraPrintDressPrimary, amaraPrintDressSide, amaraPrintDressFront],
     sizes: KIDS_SIZES,
-    colors: ["Cream"],
-    description: "A breezy modest dress with hand-finished hems.",
+    colors: ["Emerald", "Pink"],
+    description:
+      "A vibrant girls maxi dress designed for polished occasion wear and everyday confidence. Cut in a flowing silhouette with a self-tie waist, soft flared sleeves and a coordinated scarf, it brings comfortable modest coverage together with a bold LK print finish.",
+    tag: "New",
   },
   // Boys
   {
@@ -194,38 +239,6 @@ export const products: Product[] = [
       "A flowing button-front linen long shirt with a soft collar, cuffed sleeves and versatile styling.",
     tag: "New",
     bestSeller: true,
-  },
-  // Glam
-  {
-    id: "noir-boubou",
-    name: "Noir Glam Bou'bou",
-    price: 265000,
-    category: "glam",
-    image: catBoubou,
-    sizes: WOMEN_SIZES,
-    colors: ["Noir", "Coffee"],
-    description: "An evening bou'bou with tonal embroidery and silk lining.",
-  },
-  {
-    id: "gold-kaftan",
-    name: "Gold Soiree Kaftan",
-    price: 285000,
-    category: "glam",
-    image: catGlam,
-    sizes: WOMEN_SIZES,
-    colors: ["Champagne"],
-    description: "Our most opulent kaftan, finished with hand-applied detailing.",
-    tag: "Signature",
-  },
-  {
-    id: "ivory-gown",
-    name: "Ivory Statement Gown",
-    price: 240000,
-    category: "glam",
-    image: p4,
-    sizes: WOMEN_SIZES,
-    colors: ["Ivory"],
-    description: "A floor-sweeping ivory gown for occasion dressing.",
   },
   // Bou'bou
   {

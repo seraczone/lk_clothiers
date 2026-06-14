@@ -1,10 +1,9 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { categories, type CategoryKey } from "@/lib/catalog";
 import { ProductCard } from "@/components/site/ProductCard";
 import { useReveal } from "@/hooks/use-reveal";
-import { listAdminProducts, seedProducts, type AdminProduct } from "@/lib/admin-data";
+import { useStoreProducts } from "@/hooks/use-store-products";
 
 export const Route = createFileRoute("/shop/$category")({
   head: ({ params }) => {
@@ -26,39 +25,17 @@ export const Route = createFileRoute("/shop/$category")({
 });
 
 function CategoryPage() {
-  const cat = Route.useLoaderData();
-  const isAdire = cat.key === "adire";
-  const [items, setItems] = useState<AdminProduct[]>(
-    seedProducts.filter(
-      (product) => product.status === "Live" && product.category === (cat.key as CategoryKey),
-    ),
-  );
-
-  useEffect(() => {
-    let mounted = true;
-    listAdminProducts()
-      .then((loadedProducts) => {
-        if (!mounted) return;
-        setItems(
-          loadedProducts.filter(
-            (product) => product.status === "Live" && product.category === (cat.key as CategoryKey),
-          ),
-        );
-      })
-      .catch(() => {
-        if (!mounted) return;
-        setItems(
-          seedProducts.filter(
-            (product) => product.status === "Live" && product.category === (cat.key as CategoryKey),
-          ),
-        );
-      });
-    return () => {
-      mounted = false;
-    };
-  }, [cat.key]);
+  const { category } = Route.useParams();
+  const cat = categories.find((item) => item.key === category);
+  const { products } = useStoreProducts();
+  const items = cat
+    ? products.filter((product) => product.category === (cat.key as CategoryKey))
+    : [];
   const revealKey = items.map((product) => product.id).join("|");
-  const ref = useReveal<HTMLDivElement>(`${cat.key}:${revealKey}`);
+  const ref = useReveal<HTMLDivElement>(`${category}:${revealKey}`);
+
+  if (!cat) return null;
+  const isAdire = cat.key === "adire";
 
   return (
     <div ref={ref}>

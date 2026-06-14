@@ -1,5 +1,6 @@
 import pg from "pg";
 import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 const { Client } = pg;
@@ -25,12 +26,14 @@ const databaseUrl =
 const assetMap = {
   "adire-blue-burgundy.jpeg": "adire-blue-burgundy.jpeg",
   "adire-orange.jpeg": "adire-orange.jpeg",
+  "amara-print-dress-front.png": "amara-print-dress-front.png",
+  "amara-print-dress-primary.png": "amara-print-dress-primary.png",
+  "amara-print-dress-side.png": "amara-print-dress-side.png",
   "boubou-embellished-colors.jpeg": "boubou-embellished-colors.jpeg",
   "boys-kaftan-sage-tan.jpeg": "boys-kaftan-sage-tan.jpeg",
   "boys-kaftan-white.jpeg": "boys-kaftan-white.jpeg",
-  "girls-purple-dress.jpeg": "girls-purple-dress.jpeg",
   "cat-boys.jpg": "cat-boys.jpg",
-  "cat-glam.jpg": "cat-glam.jpg",
+  "girl-dresses.png": "girl-dresses.png",
   "cat-shirts.jpg": "cat-shirts.jpg",
   "cat-twopc.jpg": "cat-twopc.jpg",
   "cat-boubou.jpg": "cat-boubou.jpg",
@@ -60,7 +63,7 @@ const assetMap = {
 };
 
 const categories = [
-  { key: "girls", name: "Girls", image: "girls-purple-dress.jpeg", tagline: "Mini LK" },
+  { key: "girls", name: "Girls", image: "girl-dresses.png", tagline: "Mini LK" },
   { key: "boys", name: "Boys", image: "boys-kaftan-sage-tan.jpeg", tagline: "Little gentlemen" },
   { key: "casual", name: "Casual", image: "cat-shirts.jpg", tagline: "Legacy everyday ease" },
   {
@@ -76,7 +79,6 @@ const categories = [
     tagline: "Embellished modest elegance",
   },
   { key: "linen", name: "Linen", image: "linen-set-mint.jpeg", tagline: "Easy linen separates" },
-  { key: "glam", name: "Glam", image: "cat-glam.jpg", tagline: "Evening statements" },
   {
     key: "boubou",
     name: "Bou'bou",
@@ -89,31 +91,31 @@ const categories = [
 
 const products = [
   [
-    "zara-mini",
-    "Zara Mini Set",
-    48000,
+    "girl-dresses",
+    "Girl Dresses",
+    55000,
     "girls",
-    "girls-purple-dress.jpeg",
-    ["girls-purple-dress.jpeg"],
+    "girl-dresses.png",
+    ["girl-dresses.png"],
     ["2-3y", "4-5y", "6-7y", "8-9y", "10-11y"],
-    ["Ivory", "Peach"],
-    "A coordinated two-piece for our littlest customers, in soft brushed cotton.",
+    ["Burgundy"],
+    "A polished girls dress with puff sleeves, button detailing and a matching headwrap.",
     "New",
     false,
-    23,
+    30,
     "Live",
   ],
   [
-    "lila-dress",
-    "Lila Cream Dress",
-    55000,
+    "amara-print-dress",
+    "Amara Print Dress",
+    30000,
     "girls",
-    "girls-purple-dress.jpeg",
-    ["girls-purple-dress.jpeg"],
+    "amara-print-dress-primary.png",
+    ["amara-print-dress-primary.png", "amara-print-dress-side.png", "amara-print-dress-front.png"],
     ["2-3y", "4-5y", "6-7y", "8-9y", "10-11y"],
-    ["Cream"],
-    "A breezy modest dress with hand-finished hems.",
-    null,
+    ["Emerald", "Pink"],
+    "A vibrant girls maxi dress designed for polished occasion wear and everyday confidence. Cut in a flowing silhouette with a self-tie waist, soft flared sleeves and a coordinated scarf, it brings comfortable modest coverage together with a bold LK print finish.",
+    "New",
     false,
     30,
     "Live",
@@ -243,51 +245,6 @@ const products = [
     30,
     "Live",
   ],
-  [
-    "noir-boubou",
-    "Noir Glam Boubou",
-    265000,
-    "glam",
-    "cat-boubou.jpg",
-    null,
-    ["XS", "S", "M", "L", "XL"],
-    ["Noir", "Coffee"],
-    "An evening boubou with tonal embroidery and silk lining.",
-    null,
-    false,
-    24,
-    "Live",
-  ],
-  [
-    "gold-kaftan",
-    "Gold Soiree Kaftan",
-    285000,
-    "glam",
-    "cat-glam.jpg",
-    null,
-    ["XS", "S", "M", "L", "XL"],
-    ["Champagne"],
-    "Our most opulent kaftan, finished with hand-applied detailing.",
-    "Signature",
-    false,
-    31,
-    "Live",
-  ],
-  [
-    "ivory-gown",
-    "Ivory Statement Gown",
-    240000,
-    "glam",
-    "p4.jpg",
-    null,
-    ["XS", "S", "M", "L", "XL"],
-    ["Ivory"],
-    "A floor-sweeping ivory gown for occasion dressing.",
-    null,
-    false,
-    38,
-    "Live",
-  ],
 ];
 
 const content = {
@@ -300,6 +257,13 @@ const content = {
   primaryCta: "Shop Collection",
   secondaryCta: "Chat on WhatsApp",
   atelierHeadline: "Quality, modesty, elegance.",
+  home: {
+    lookbookVideos: [
+      { title: "The Aria Dress", caption: "Classic linen collection edit" },
+      { title: "Girls Eid Edit", caption: "Mini LK occasionwear" },
+      { title: "Silk Flare", caption: "Statement print" },
+    ],
+  },
   address: "Wuye District, Abuja FCT, Nigeria",
   email: "hello@lkclothiers.com",
   instagram: "@lk_clothiers",
@@ -337,17 +301,19 @@ async function uploadAssets() {
   for (const [source, destination] of Object.entries(assetMap)) {
     const bucket = source === "hero-collection.png" ? "site-assets" : "product-images";
     const filePath = path.join(process.cwd(), "src", "assets", source);
-    const bytes = await readFile(filePath);
-    const response = await storageFetch(`/object/${bucket}/${destination}`, {
-      method: "POST",
-      headers: {
-        "content-type": contentTypeFor(source),
-        "x-upsert": "true",
-      },
-      body: bytes,
-    });
-    if (!response.ok) {
-      throw new Error(`Unable to upload ${source}: ${await response.text()}`);
+    if (existsSync(filePath)) {
+      const bytes = await readFile(filePath);
+      const response = await storageFetch(`/object/${bucket}/${destination}`, {
+        method: "POST",
+        headers: {
+          "content-type": contentTypeFor(source),
+          "x-upsert": "true",
+        },
+        body: bytes,
+      });
+      if (!response.ok) {
+        throw new Error(`Unable to upload ${source}: ${await response.text()}`);
+      }
     }
     urls[source] =
       `${process.env.VITE_SUPABASE_URL}/storage/v1/object/public/${bucket}/${destination}`;
@@ -449,6 +415,7 @@ async function setupDatabase(urls) {
     `);
 
     await upsertPolicies(client);
+    await upsertStoragePolicies(client);
 
     for (const category of categories) {
       await client.query(
@@ -521,6 +488,16 @@ async function setupDatabase(urls) {
 
     await client.query(
       `
+        delete from public.products
+        where category = 'glam'
+          or id in ('zara-mini', 'lila-dress', 'noir-boubou', 'gold-kaftan', 'ivory-gown')
+      `,
+    );
+    await client.query("delete from public.categories where key = 'glam'");
+    await removeGeneratedGirlsAssets();
+
+    await client.query(
+      `
         insert into public.site_content (key, value)
         values ('homepage', $1)
         on conflict (key) do update set value = excluded.value
@@ -529,6 +506,18 @@ async function setupDatabase(urls) {
     );
   } finally {
     await client.end();
+  }
+}
+
+async function removeGeneratedGirlsAssets() {
+  const staleObjects = ["girls-purple-dress.jpeg", "girls-green-dress.jpeg"];
+  const response = await storageFetch("/object/product-images", {
+    method: "DELETE",
+    body: JSON.stringify({ prefixes: staleObjects }),
+  });
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Unable to remove generated girls assets: ${body}`);
   }
 }
 
@@ -548,4 +537,27 @@ async function upsertPolicies(client) {
     await client.query(`drop policy if exists ${name} on public.${table}`);
     await client.query(`create policy ${name} on public.${table} for ${command} ${clause}`);
   }
+}
+
+async function upsertStoragePolicies(client) {
+  await client.query(`
+    drop policy if exists product_images_select_public on storage.objects;
+    create policy product_images_select_public
+    on storage.objects for select
+    to anon, authenticated
+    using (bucket_id = 'product-images');
+
+    drop policy if exists product_images_insert_mvp on storage.objects;
+    create policy product_images_insert_mvp
+    on storage.objects for insert
+    to anon, authenticated
+    with check (bucket_id = 'product-images');
+
+    drop policy if exists product_images_update_mvp on storage.objects;
+    create policy product_images_update_mvp
+    on storage.objects for update
+    to anon, authenticated
+    using (bucket_id = 'product-images')
+    with check (bucket_id = 'product-images');
+  `);
 }

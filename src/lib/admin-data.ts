@@ -1,5 +1,5 @@
 import { categories, products, type CategoryKey, type Product } from "@/lib/catalog";
-import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { isSupabaseConfigured, supabase, supabaseConfigError } from "@/lib/supabase";
 
 export type ProductStatus = "Live" | "Draft" | "Archived";
 export type AdminProduct = Product & {
@@ -206,7 +206,7 @@ export const defaultContent: ContentState = {
     lookbookAccent: "in motion",
     lookbookCta: "Shop the edit",
     lookbookVideos: [
-      { title: "Luxury Kaftan", caption: "Embroidered kaftan edit" },
+      { title: "The Aria Dress", caption: "Classic linen collection edit" },
       { title: "Girls Eid Edit", caption: "Mini LK occasionwear" },
       { title: "Silk Flare", caption: "Statement print" },
     ],
@@ -392,12 +392,17 @@ export const seedProducts: AdminProduct[] = products.map((product, index) => ({
 export const adminCategories = categories;
 const validCategoryKeys = new Set(categories.map((category) => category.key));
 const replacedSeedProductIds = new Set([
+  "zara-mini",
+  "lila-dress",
   "ivory-shirt",
   "orange-set",
   "coffee-set",
   "kai-twopc",
   "omar-kaftan",
   "silk-flare-video",
+  "noir-boubou",
+  "gold-kaftan",
+  "ivory-gown",
 ]);
 
 export async function listAdminProducts(): Promise<AdminProduct[]> {
@@ -418,9 +423,9 @@ export async function listAdminProducts(): Promise<AdminProduct[]> {
 }
 
 export async function upsertAdminProduct(product: AdminProduct): Promise<AdminProduct> {
-  if (!isSupabaseConfigured || !supabase) return product;
+  const client = requireSupabase();
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("products")
     .upsert(productToRow(product), { onConflict: "id" })
     .select()
@@ -431,29 +436,27 @@ export async function upsertAdminProduct(product: AdminProduct): Promise<AdminPr
 }
 
 export async function deleteAdminProduct(id: string): Promise<void> {
-  if (!isSupabaseConfigured || !supabase) return;
+  const client = requireSupabase();
 
-  const { error } = await supabase.from("products").delete().eq("id", id);
+  const { error } = await client.from("products").delete().eq("id", id);
   if (error) throw error;
 }
 
 export async function uploadProductImage(file: File, productId: string): Promise<string> {
-  if (!isSupabaseConfigured || !supabase) {
-    throw new Error("Supabase is not configured for image uploads.");
-  }
+  const client = requireSupabase();
 
   const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
   const safeProductId = productId || "product";
   const filePath = `${safeProductId}/${Date.now()}.${extension}`;
 
-  const { error } = await supabase.storage.from("product-images").upload(filePath, file, {
+  const { error } = await client.storage.from("product-images").upload(filePath, file, {
     cacheControl: "3600",
     upsert: true,
   });
 
   if (error) throw error;
 
-  return supabase.storage.from("product-images").getPublicUrl(filePath).data.publicUrl;
+  return client.storage.from("product-images").getPublicUrl(filePath).data.publicUrl;
 }
 
 export async function getSiteContent(): Promise<ContentState> {
@@ -470,10 +473,10 @@ export async function getSiteContent(): Promise<ContentState> {
 }
 
 export async function saveSiteContent(content: ContentState): Promise<ContentState> {
-  if (!isSupabaseConfigured || !supabase) return content;
+  const client = requireSupabase();
 
   const normalizedContent = normalizeSiteContent(content);
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("site_content")
     .upsert({ key: "homepage", value: normalizedContent }, { onConflict: "key" })
     .select("key,value")
@@ -529,6 +532,13 @@ function productToRow(product: AdminProduct): ProductRow {
     stock: product.stock,
     status: product.status,
   };
+}
+
+function requireSupabase() {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error(supabaseConfigError);
+  }
+  return supabase;
 }
 
 function deepMerge(base: unknown, override: unknown): unknown {

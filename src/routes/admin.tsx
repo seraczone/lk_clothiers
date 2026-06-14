@@ -35,6 +35,7 @@ import {
   type ProductStatus,
 } from "@/lib/admin-data";
 import { ngn, products, type CategoryKey } from "@/lib/catalog";
+import { isSupabaseConfigured, supabaseConfigError } from "@/lib/supabase";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin - LK Clothiers" }] }),
@@ -148,6 +149,11 @@ function AdminPage() {
               {dataError}
             </div>
           )}
+          {!isSupabaseConfigured && (
+            <div className="mb-5 rounded-[6px] border border-[color:var(--destructive)] bg-[color:var(--destructive)]/8 px-4 py-3 text-sm text-[color:var(--destructive)]">
+              {supabaseConfigError}
+            </div>
+          )}
           {isLoading && (
             <div className="mb-5 rounded-[6px] border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
               Loading Supabase data...
@@ -257,9 +263,9 @@ function Dashboard({
         <Panel title="Operational Notes">
           <div className="space-y-3">
             <Task done label="Public site content is editable" />
-            <Task done label="Product CRUD persists locally" />
+            <Task done={isSupabaseConfigured} label="Product CRUD is connected to Supabase" />
             <Task done={lowStockCount === 0} label="Review low-stock products" />
-            <Task label="Connect Supabase tables and storage" />
+            <Task done={isSupabaseConfigured} label="Supabase tables and storage are configured" />
           </div>
         </Panel>
       </div>
@@ -308,6 +314,7 @@ function ProductsTab({
   const [editing, setEditing] = useState<AdminProduct | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [mutationError, setMutationError] = useState("");
+  const [mutationSuccess, setMutationSuccess] = useState("");
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -335,9 +342,11 @@ function ProductsTab({
       setEditing(null);
       setIsCreating(false);
       setMutationError("");
+      setMutationSuccess(`${savedProduct.name} was saved to Supabase.`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to save product.";
       setMutationError(message);
+      setMutationSuccess("");
       throw new Error(message);
     }
   };
@@ -353,21 +362,25 @@ function ProductsTab({
       const savedProduct = await upsertAdminProduct(copy);
       onProductsChange([savedProduct, ...adminProducts]);
       setMutationError("");
+      setMutationSuccess(`${savedProduct.name} was duplicated in Supabase.`);
     } catch (error) {
       setMutationError(error instanceof Error ? error.message : "Unable to duplicate product.");
+      setMutationSuccess("");
     }
   };
 
   const deleteProduct = async (id: string) => {
     const product = adminProducts.find((item) => item.id === id);
     if (!product) return;
-    if (window.confirm(`Delete ${product.name}? This only removes it from the admin MVP data.`)) {
+    if (window.confirm(`Delete ${product.name}? This removes it from Supabase products.`)) {
       try {
         await deleteAdminProduct(id);
         onProductsChange(adminProducts.filter((item) => item.id !== id));
         setMutationError("");
+        setMutationSuccess(`${product.name} was deleted from Supabase.`);
       } catch (error) {
         setMutationError(error instanceof Error ? error.message : "Unable to delete product.");
+        setMutationSuccess("");
       }
     }
   };
@@ -392,6 +405,11 @@ function ProductsTab({
         {mutationError && (
           <div className="mb-4 rounded-[6px] border border-[color:var(--destructive)] bg-[color:var(--destructive)]/8 px-4 py-3 text-sm text-[color:var(--destructive)]">
             {mutationError}
+          </div>
+        )}
+        {mutationSuccess && (
+          <div className="mb-4 rounded-[6px] border border-[color:var(--accent)] bg-[color:var(--accent)]/10 px-4 py-3 text-sm text-[color:var(--accent)]">
+            {mutationSuccess}
           </div>
         )}
         <div className="grid gap-3 lg:grid-cols-[1fr_180px_150px]">
@@ -533,6 +551,7 @@ function ProductEditor({
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [galleryUrlInput, setGalleryUrlInput] = useState("");
 
   const updateDraft = <K extends keyof ProductDraft>(key: K, value: ProductDraft[K]) => {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -562,19 +581,29 @@ function ProductEditor({
       setError("Enter a valid stock quantity.");
       return;
     }
+    const imageUrl = draft.image.trim();
+    if (!imageUrl) {
+      setError("Upload a product image or paste a valid image URL before saving.");
+      return;
+    }
+    if (isUploading) {
+      setError("Wait for the image upload to finish before saving.");
+      return;
+    }
     setIsSaving(true);
     try {
+      const gallery = normalizeGallery(imageUrl, draft.gallery);
       await onSave({
         id: normalizedId,
         name: draft.name.trim(),
         price: parsedPrice,
         category: draft.category,
-        image: draft.image.trim() || products[0]?.image || "",
-        gallery: draft.gallery,
+        image: imageUrl,
+        gallery,
         sizes: splitList(draft.sizes),
         colors: splitList(draft.colors),
         description: draft.description.trim(),
-        tag: draft.tag.trim() || undefined,
+        tag: (draft.tag ?? "").trim() || undefined,
         bestSeller: draft.bestSeller,
         stock: Math.round(parsedStock),
         status: draft.status,
@@ -599,11 +628,75 @@ function ProductEditor({
     try {
       const uploadedUrl = await uploadProductImage(file, slugify(draft.id || draft.name));
       updateDraft("image", uploadedUrl);
+      updateDraft("gallery", normalizeGallery(uploadedUrl, draft.gallery));
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Unable to upload image.");
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleGalleryUpload = async (files: FileList | null) => {
+    const imageFiles = Array.from(files ?? []);
+    if (imageFiles.length === 0) return;
+    const invalidFile = imageFiles.find((file) => !file.type.startsWith("image/"));
+    if (invalidFile) {
+      setError("Choose only valid image files.");
+      return;
+    }
+
+    setIsUploading(true);
+    setError("");
+    try {
+      const uploadedUrls: string[] = [];
+      for (const file of imageFiles) {
+        uploadedUrls.push(await uploadProductImage(file, slugify(draft.id || draft.name)));
+      }
+      const primaryImage = draft.image.trim() || uploadedUrls[0] || "";
+      setDraft((current) => ({
+        ...current,
+        image: current.image.trim() || primaryImage,
+        gallery: normalizeGallery(primaryImage, [...(current.gallery ?? []), ...uploadedUrls]),
+      }));
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "Unable to upload images.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const addGalleryUrl = () => {
+    const url = galleryUrlInput.trim();
+    if (!url) return;
+    setDraft((current) => {
+      const primaryImage = current.image.trim() || url;
+      return {
+        ...current,
+        image: primaryImage,
+        gallery: normalizeGallery(primaryImage, [...(current.gallery ?? []), url]),
+      };
+    });
+    setGalleryUrlInput("");
+  };
+
+  const setPrimaryImage = (url: string) => {
+    setDraft((current) => ({
+      ...current,
+      image: url,
+      gallery: normalizeGallery(url, current.gallery),
+    }));
+  };
+
+  const removeGalleryImage = (url: string) => {
+    setDraft((current) => {
+      const gallery = (current.gallery ?? []).filter((item) => item !== url);
+      const image = current.image === url ? (gallery[0] ?? "") : current.image;
+      return {
+        ...current,
+        image,
+        gallery: image ? normalizeGallery(image, gallery) : gallery,
+      };
+    });
   };
 
   return (
@@ -722,6 +815,85 @@ function ProductEditor({
                 </div>
               </div>
             </div>
+            <div className="md:col-span-2">
+              <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                Gallery images
+              </span>
+              <div className="rounded-[8px] border border-border bg-background p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Detail page gallery</p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      Upload multiple color variants. Select one image as Primary for product cards.
+                    </p>
+                  </div>
+                  <label className="inline-flex w-fit cursor-pointer items-center justify-center rounded-[6px] bg-foreground px-4 py-2.5 text-xs uppercase tracking-[0.18em] text-background transition-colors hover:bg-[color:var(--accent)]">
+                    {isUploading ? "Uploading..." : "Upload gallery"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="sr-only"
+                      disabled={isUploading}
+                      onChange={(event) => handleGalleryUpload(event.target.files)}
+                    />
+                  </label>
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <input
+                    value={galleryUrlInput}
+                    onChange={(event) => setGalleryUrlInput(event.target.value)}
+                    placeholder="Paste an additional image URL"
+                    className="h-10 min-w-0 flex-1 rounded-[6px] border border-border bg-background px-3 text-xs outline-none transition-colors focus:border-foreground"
+                  />
+                  <button
+                    type="button"
+                    onClick={addGalleryUrl}
+                    className="rounded-[6px] border border-border px-3 text-xs uppercase tracking-[0.16em] hover:border-foreground"
+                  >
+                    Add
+                  </button>
+                </div>
+                {(draft.gallery?.length ?? 0) > 0 ? (
+                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                    {draft.gallery?.map((url, index) => (
+                      <div
+                        key={`${url}-${index}`}
+                        className={`overflow-hidden rounded-[8px] border bg-[color:var(--cream)] ${
+                          draft.image === url ? "border-[color:var(--accent)]" : "border-border"
+                        }`}
+                      >
+                        <img src={url} alt="" className="h-32 w-full object-cover" />
+                        <div className="grid grid-cols-2 border-t border-border text-[10px] uppercase tracking-[0.14em]">
+                          <button
+                            type="button"
+                            onClick={() => setPrimaryImage(url)}
+                            className={`px-2 py-2 ${
+                              draft.image === url
+                                ? "bg-[color:var(--accent)] text-white"
+                                : "hover:bg-background"
+                            }`}
+                          >
+                            {draft.image === url ? "Primary" : "Use"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeGalleryImage(url)}
+                            className="border-l border-border px-2 py-2 text-[color:var(--destructive)] hover:bg-background"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-4 rounded-[6px] bg-[color:var(--cream)] px-3 py-3 text-xs text-muted-foreground">
+                    No gallery images yet. The primary product image will be used by default.
+                  </p>
+                )}
+              </div>
+            </div>
             <Field
               label="Sizes"
               value={draft.sizes}
@@ -792,11 +964,17 @@ function ProductEditor({
           <button
             type="submit"
             form="product-editor-form"
-            disabled={isSaving}
+            disabled={isSaving || isUploading}
             className="inline-flex items-center gap-2 rounded-[6px] bg-[color:var(--accent)] px-4 py-2.5 text-xs uppercase tracking-[0.18em] text-white hover:bg-foreground"
           >
             <Save size={15} />
-            {isSaving ? "Saving" : product ? "Update Product" : "Save Product"}
+            {isSaving
+              ? "Saving"
+              : isUploading
+                ? "Uploading"
+                : product
+                  ? "Update Product"
+                  : "Save Product"}
           </button>
         </div>
       </div>
@@ -1091,7 +1269,7 @@ function MarketingTab({ content }: { content: ContentState }) {
           <Field label="Promo code" value="LKEID15" onChange={() => undefined} />
           <Field
             label="Homepage announcement"
-            value={content.announcement}
+            value={content.home.announcement}
             onChange={() => undefined}
           />
           <button className="inline-flex w-fit items-center gap-2 rounded-[6px] bg-[color:var(--accent)] px-4 py-2.5 text-xs uppercase tracking-[0.18em] text-white hover:bg-foreground">
@@ -1312,6 +1490,7 @@ function productToDraft(product: AdminProduct | null): ProductDraft {
   if (!product) return blankDraft();
   return {
     ...product,
+    gallery: normalizeGallery(product.image, product.gallery),
     price: String(product.price),
     stock: String(product.stock),
     sizes: product.sizes.join(", "),
@@ -1319,6 +1498,11 @@ function productToDraft(product: AdminProduct | null): ProductDraft {
     tag: product.tag ?? "",
     bestSeller: Boolean(product.bestSeller),
   };
+}
+
+function normalizeGallery(primaryImage: string, gallery: string[] | undefined) {
+  const ordered = [primaryImage, ...(gallery ?? [])].map((item) => item.trim()).filter(Boolean);
+  return Array.from(new Set(ordered));
 }
 
 function splitList(value: string) {

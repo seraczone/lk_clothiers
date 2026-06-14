@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, type CSSProperties } from "react";
+import amaraPrintDressFront from "@/assets/amara-print-dress-front.png";
 import heroImg from "@/assets/hero-collection.png";
-import catBoubou from "@/assets/cat-boubou.jpg";
-import { categories, newArrivals, bestSellers } from "@/lib/catalog";
+import heroSilkDresses from "@/assets/hero-silk-dresses.jpeg";
+import { categories } from "@/lib/catalog";
 import { ProductCard } from "@/components/site/ProductCard";
 import { useSiteContent } from "@/hooks/use-site-content";
-import type { ContentState } from "@/lib/admin-data";
+import { useStoreProducts } from "@/hooks/use-store-products";
+import type { AdminProduct, ContentState } from "@/lib/admin-data";
 import { genericWhatsAppUrl, WHATSAPP_DISPLAY } from "@/lib/whatsapp";
 import atelierBoardroomWeekend from "@/assets/atelier-boardroom-weekend.mp4";
 import atelierGirlsEid from "@/assets/atelier-girls-eid.mp4";
@@ -34,6 +36,11 @@ const lookbookVideos = [
   { src: atelierBoardroomWeekend },
   { src: atelierGirlsEid },
   { src: silkFlareVideo },
+];
+
+const heroSlides = [
+  { src: heroImg, alt: "LK Clothiers dresses on display" },
+  { src: heroSilkDresses, alt: "LK Clothiers silk dresses on hangers" },
 ];
 
 const scatterDirections = [
@@ -132,7 +139,7 @@ function VideoLookbook({ content }: { content: ContentState }) {
   );
 }
 
-function useReveal() {
+function useReveal(observeKey = "") {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const els = ref.current?.querySelectorAll<HTMLElement>(".reveal") ?? [];
@@ -142,20 +149,24 @@ function useReveal() {
     );
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, []);
+  }, [observeKey]);
   return ref;
 }
 
 function Hero({ content }: { content: ContentState }) {
   return (
     <section className="relative min-h-[90svh]">
-      <img
-        src={heroImg}
-        alt="LK Clothiers signature ivory kaftan"
-        width={1080}
-        height={1920}
-        className="absolute inset-0 w-full h-full object-cover"
-      />
+      <div className="absolute inset-0 overflow-hidden bg-foreground">
+        {heroSlides.map((slide, index) => (
+          <img
+            key={slide.src}
+            src={slide.src}
+            alt={slide.alt}
+            className="hero-slide absolute inset-0 h-full w-full object-cover"
+            style={{ animationDelay: `${index * 6}s` }}
+          />
+        ))}
+      </div>
       <div className="absolute inset-0 bg-gradient-to-r from-foreground/70 via-foreground/40 to-foreground/10" />
       <div className="relative z-10 flex items-end lg:items-center min-h-[90svh] px-6 lg:px-12 pb-16 lg:pb-0">
         <div className="lk-fade-up max-w-xl">
@@ -269,7 +280,7 @@ function ProductGrid({
   eyebrow,
   cta,
 }: {
-  items: ReturnType<typeof newArrivals>;
+  items: AdminProduct[];
   title: string;
   eyebrow: string;
   cta?: { label: string; to: string };
@@ -306,10 +317,10 @@ function About({ content }: { content: ContentState }) {
     <section className="grid lg:grid-cols-2 bg-foreground text-background">
       <div className="relative min-h-[60svh] lg:min-h-[80svh]">
         <img
-          src={catBoubou}
+          src={amaraPrintDressFront}
           alt="LK atelier"
           loading="lazy"
-          className="absolute inset-0 w-full h-full object-cover opacity-90"
+          className="absolute inset-0 w-full h-full object-contain opacity-90"
         />
       </div>
       <div className="flex items-center px-6 lg:px-20 py-24 lg:py-0">
@@ -550,15 +561,26 @@ function VisitStore({ content }: { content: ContentState }) {
 }
 
 function Index() {
-  const ref = useReveal();
   const content = useSiteContent();
+  const { products } = useStoreProducts();
+  const revealKey = products.map((product) => product.id).join("|");
+  const ref = useReveal(revealKey);
+  const taggedArrivals = products.filter(
+    (product) => product.tag === "New" || product.tag === "Signature",
+  );
+  const arrivalProducts = [
+    ...taggedArrivals,
+    ...products.filter((product) => !taggedArrivals.some((arrival) => arrival.id === product.id)),
+  ].slice(0, 4);
+  const bestSellerProducts = products.filter((product) => product.bestSeller).slice(0, 3);
+
   return (
     <div ref={ref} className="scroll-smooth">
       <Hero content={content} />
       <Marquee content={content} />
       <Categories content={content} />
       <ProductGrid
-        items={newArrivals()}
+        items={arrivalProducts}
         eyebrow={content.home.newArrivalsEyebrow}
         title={content.home.newArrivalsTitle}
         cta={{ label: content.home.newArrivalsCta, to: "/shop" }}
@@ -571,7 +593,7 @@ function Index() {
           </h2>
         </div>
         <div className="grid lg:grid-cols-3 gap-4 lg:gap-6">
-          {bestSellers().map((p, i) => (
+          {bestSellerProducts.map((p, i) => (
             <ProductCard key={p.id} p={p} delay={i * 100} />
           ))}
         </div>

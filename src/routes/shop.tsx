@@ -1,11 +1,11 @@
 import { createFileRoute, Link, Outlet, useMatch } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { categories, ngn } from "@/lib/catalog";
 import { ProductCard } from "@/components/site/ProductCard";
 import { useReveal } from "@/hooks/use-reveal";
 import { useSiteContent } from "@/hooks/use-site-content";
-import { listAdminProducts, seedProducts, type AdminProduct } from "@/lib/admin-data";
+import { useStoreProducts } from "@/hooks/use-store-products";
 
 export const Route = createFileRoute("/shop")({
   head: () => ({
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/shop")({
       {
         name: "description",
         content:
-          "Shop premium modest fashion: luxury kaftans, two-piece sets, adire, silk and glam pieces for women, girls and boys.",
+          "Shop premium modest fashion: luxury kaftans, linen, adire, silk, boubou pieces, girls and boys collections.",
       },
     ],
   }),
@@ -24,27 +24,10 @@ export const Route = createFileRoute("/shop")({
 function ShopPage() {
   const categoryMatch = useMatch({ from: "/shop/$category", shouldThrow: false });
   const content = useSiteContent();
-  const [shopProducts, setShopProducts] = useState<AdminProduct[]>(
-    seedProducts.filter((product) => product.status === "Live"),
-  );
+  const { products: shopProducts } = useStoreProducts();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"new" | "low" | "high">("new");
   const [max, setMax] = useState(300000);
-
-  useEffect(() => {
-    let mounted = true;
-    listAdminProducts()
-      .then((loadedProducts) => {
-        if (!mounted) return;
-        setShopProducts(loadedProducts.filter((product) => product.status === "Live"));
-      })
-      .catch(() => {
-        if (mounted) setShopProducts(seedProducts.filter((product) => product.status === "Live"));
-      });
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   const filtered = useMemo(() => {
     const term = query.toLowerCase().trim();
