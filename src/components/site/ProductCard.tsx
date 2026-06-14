@@ -5,7 +5,15 @@ import { ngn, type Product } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 import { productWhatsAppUrl } from "@/lib/whatsapp";
 
-export function ProductCard({ p, delay = 0 }: { p: Product; delay?: number }) {
+export function ProductCard({
+  p,
+  delay = 0,
+  showWhatsApp = true,
+}: {
+  p: Product;
+  delay?: number;
+  showWhatsApp?: boolean;
+}) {
   const { add } = useCart();
   const [added, setAdded] = useState(false);
 
@@ -68,26 +76,28 @@ export function ProductCard({ p, delay = 0 }: { p: Product; delay?: number }) {
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button
           onClick={handleAdd}
-          className="min-h-10 bg-[color:var(--accent)] px-2 py-2.5 text-[9px] uppercase tracking-[0.14em] text-white transition-colors hover:bg-foreground sm:px-3 sm:text-[10px] sm:tracking-[0.2em]"
+          className="min-h-10 rounded-[6px] bg-[color:var(--accent)] px-2 py-2.5 text-[9px] font-medium uppercase tracking-[0.14em] text-white shadow-sm transition-colors hover:bg-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--accent)] sm:px-3 sm:text-[10px] sm:tracking-[0.2em]"
         >
           {added ? "Added" : "Add to Bag"}
         </button>
         <Link
           to="/product/$id"
           params={{ id: p.id }}
-          className="min-h-10 border border-foreground px-2 py-2.5 text-center text-[9px] uppercase tracking-[0.14em] transition-colors hover:bg-foreground hover:text-background sm:px-3 sm:text-[10px] sm:tracking-[0.2em]"
+          className="min-h-10 rounded-[6px] border border-foreground/60 bg-background/70 px-2 py-2.5 text-center text-[9px] font-medium uppercase tracking-[0.14em] transition-colors hover:border-foreground hover:bg-foreground hover:text-background focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground sm:px-3 sm:text-[10px] sm:tracking-[0.2em]"
         >
           Details
         </Link>
       </div>
-      <a
-        href={productWhatsAppUrl(p.name, p.price, p.colors[0], p.sizes[0])}
-        target="_blank"
-        rel="noreferrer"
-        className="mt-2 min-h-10 border border-[color:var(--accent)] px-2 py-2.5 text-center text-[9px] uppercase tracking-[0.14em] text-[color:var(--accent)] transition-colors hover:bg-[color:var(--accent)] hover:text-white sm:px-3 sm:text-[10px] sm:tracking-[0.2em]"
-      >
-        WhatsApp Checkout
-      </a>
+      {showWhatsApp && (
+        <a
+          href={productWhatsAppUrl(p.name, p.price, p.colors[0], p.sizes[0])}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 min-h-10 rounded-[6px] border border-[color:var(--accent)]/70 bg-background/70 px-2 py-2.5 text-center text-[9px] font-medium uppercase tracking-[0.14em] text-[color:var(--accent)] transition-colors hover:bg-[color:var(--accent)] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--accent)] sm:px-3 sm:text-[10px] sm:tracking-[0.2em]"
+        >
+          WhatsApp Checkout
+        </a>
+      )}
     </div>
   );
 }

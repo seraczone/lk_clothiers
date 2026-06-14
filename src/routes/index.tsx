@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, type CSSProperties } from "react";
 import amaraPrintDressFront from "@/assets/amara-print-dress-front.png";
 import heroImg from "@/assets/hero-collection.png";
-import heroSilkDresses from "@/assets/hero-silk-dresses.jpeg";
 import { categories } from "@/lib/catalog";
 import { ProductCard } from "@/components/site/ProductCard";
 import { useSiteContent } from "@/hooks/use-site-content";
@@ -38,10 +37,7 @@ const lookbookVideos = [
   { src: silkFlareVideo },
 ];
 
-const heroSlides = [
-  { src: heroImg, alt: "LK Clothiers dresses on display" },
-  { src: heroSilkDresses, alt: "LK Clothiers silk dresses on hangers" },
-];
+const heroSlides = [{ src: heroImg, alt: "LK Clothiers dresses on display" }];
 
 const scatterDirections = [
   { x: -28, y: -18, rotate: -9 },
@@ -304,7 +300,7 @@ function ProductGrid({
         </div>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
           {items.map((p, i) => (
-            <ProductCard key={p.id} p={p} delay={i * 80} />
+            <ProductCard key={p.id} p={p} delay={i * 80} showWhatsApp={false} />
           ))}
         </div>
       </div>
@@ -594,7 +590,7 @@ function Index() {
         </div>
         <div className="grid lg:grid-cols-3 gap-4 lg:gap-6">
           {bestSellerProducts.map((p, i) => (
-            <ProductCard key={p.id} p={p} delay={i * 100} />
+            <ProductCard key={p.id} p={p} delay={i * 100} showWhatsApp={false} />
           ))}
         </div>
       </section>
