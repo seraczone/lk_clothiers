@@ -61,11 +61,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       remove: (id, size, color) =>
         setItems((prev) => prev.filter((p) => !sameKey(p, { id, size, color, qty: 0 }))),
       setQty: (id, size, color, qty) =>
-        setItems((prev) =>
-          prev.map((p) =>
-            sameKey(p, { id, size, color, qty: 0 }) ? { ...p, qty: Math.max(1, qty) } : p,
-          ),
-        ),
+        setItems((prev) => {
+          if (qty <= 0) return prev.filter((p) => !sameKey(p, { id, size, color, qty: 0 }));
+          return prev.map((p) => (sameKey(p, { id, size, color, qty: 0 }) ? { ...p, qty } : p));
+        }),
       clear: () => setItems([]),
     };
   }, [items]);

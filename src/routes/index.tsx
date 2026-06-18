@@ -239,7 +239,7 @@ function Categories({ content }: { content: ContentState }) {
           {content.home.collectionsCta} →
         </Link>
       </div>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:gap-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5 lg:gap-4">
         {categories.map((c, i) => (
           <Link
             to="/shop/$category"
@@ -572,10 +572,7 @@ function Index() {
   const taggedArrivals = products.filter(
     (product) => product.tag === "New" || product.tag === "Signature",
   );
-  const arrivalProducts = [
-    ...taggedArrivals,
-    ...products.filter((product) => !taggedArrivals.some((arrival) => arrival.id === product.id)),
-  ].slice(0, 5);
+  const arrivalProducts = taggedArrivals.length > 0 ? taggedArrivals : products.slice(0, 5);
   const bestSellerProducts = products.filter((product) => product.bestSeller).slice(0, 4);
 
   return (
