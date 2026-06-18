@@ -1,16 +1,21 @@
 import { Link } from "@tanstack/react-router";
 import logo from "@/assets/lk-logo.png";
+import { useReveal } from "@/hooks/use-reveal";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { categories } from "@/lib/catalog";
 import { genericWhatsAppUrl } from "@/lib/whatsapp";
 
 export function Footer() {
   const content = useSiteContent();
+  const ref = useReveal<HTMLElement>();
 
   return (
-    <footer className="bg-foreground text-background pt-20 pb-10 px-6 lg:px-12">
+    <footer
+      ref={ref}
+      className="relative z-10 bg-foreground text-background pt-20 pb-10 px-6 lg:px-12"
+    >
       <div className="max-w-[1400px] mx-auto">
-        <div className="grid md:grid-cols-4 gap-12 mb-16 reveal is-in">
+        <div className="footer-reveal grid md:grid-cols-4 gap-12 mb-16">
           <div className="md:col-span-2">
             <Link to="/" aria-label="LK Clothiers home" className="inline-flex">
               <img

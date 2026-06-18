@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { CSSProperties, FormEvent, InputHTMLAttributes } from "react";
 import { useCart } from "@/lib/cart";
 import { productById, ngn } from "@/lib/catalog";
+import { decrementProductStock } from "@/lib/admin-data";
 import { checkoutWhatsAppUrl } from "@/lib/whatsapp";
 import { useReveal } from "@/hooks/use-reveal";
 
@@ -16,15 +17,27 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const [payment, setPayment] = useState<"paystack" | "flutterwave" | "transfer">("paystack");
   const [done, setDone] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
   const shipping = subtotal > 100000 ? 0 : 5000;
   const whatsappCheckout = checkoutWhatsAppUrl(items, subtotal, shipping);
   const ref = useReveal<HTMLFormElement>();
 
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
-    setDone(true);
-    clear();
-    setTimeout(() => navigate({ to: "/account" }), 2500);
+    setError("");
+    setIsSubmitting(true);
+
+    try {
+      await decrementProductStock(items);
+      setDone(true);
+      clear();
+      setTimeout(() => navigate({ to: "/account" }), 2500);
+    } catch {
+      setError("We could not update inventory for this order. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (done) {
@@ -152,11 +165,13 @@ function CheckoutPage() {
         >
           Checkout on WhatsApp
         </a>
+        {error && <p className="mt-3 text-xs text-[color:var(--destructive)]">{error}</p>}
         <button
           type="submit"
-          className="mt-3 w-full border border-foreground px-7 py-4 text-xs uppercase tracking-[0.25em] hover:bg-foreground hover:text-background transition-colors"
+          disabled={isSubmitting}
+          className="mt-3 w-full border border-foreground px-7 py-4 text-xs uppercase tracking-[0.25em] transition-colors hover:bg-foreground hover:text-background disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Place Order
+          {isSubmitting ? "Placing Order" : "Place Order"}
         </button>
       </aside>
     </form>

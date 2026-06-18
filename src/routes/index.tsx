@@ -37,8 +37,6 @@ const lookbookVideos = [
   { src: silkFlareVideo },
 ];
 
-const heroSlides = [{ src: heroImg, alt: "LK Clothiers dresses on display" }];
-
 const scatterDirections = [
   { x: -28, y: -18, rotate: -9 },
   { x: 24, y: -22, rotate: 8 },
@@ -84,12 +82,12 @@ function ScatterText({
 
 function VideoLookbook({ content }: { content: ContentState }) {
   return (
-    <section className="px-6 lg:px-12 py-24 lg:py-32 bg-foreground text-background">
-      <div className="max-w-[1400px] mx-auto">
-        <div className="flex items-end justify-between mb-14 reveal">
+    <section className="bg-foreground px-6 py-18 text-background lg:px-12 lg:py-24">
+      <div className="mx-auto max-w-[1180px]">
+        <div className="mb-10 flex items-end justify-between reveal">
           <div>
             <p className="eyebrow mb-4 text-background/60">{content.home.lookbookEyebrow}</p>
-            <h2 className="font-display text-4xl md:text-5xl lg:text-6xl">
+            <h2 className="font-display text-4xl md:text-5xl">
               {content.home.lookbookTitle}
               <br />
               <em className="italic text-[color:var(--accent)]">{content.home.lookbookAccent}</em>.
@@ -102,13 +100,13 @@ function VideoLookbook({ content }: { content: ContentState }) {
             {content.home.lookbookCta} →
           </Link>
         </div>
-        <div className="grid md:grid-cols-3 gap-4 lg:gap-6">
+        <div className="lookbook-scroll">
           {lookbookVideos.map((v, i) => {
             const copy = content.home.lookbookVideos[i];
             return (
               <figure
                 key={i}
-                className="relative aspect-[9/16] overflow-hidden bg-background/10 reveal"
+                className="relative aspect-[9/14] overflow-hidden bg-background/10 reveal"
                 style={{ transitionDelay: `${i * 100}ms` }}
               >
                 <video
@@ -118,7 +116,7 @@ function VideoLookbook({ content }: { content: ContentState }) {
                   loop
                   playsInline
                   preload="metadata"
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className="absolute inset-0 h-full w-full object-contain"
                 />
                 <figcaption className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-foreground/80 to-transparent text-background">
                   <p className="font-display text-xl">{copy?.title}</p>
@@ -151,28 +149,28 @@ function useReveal(observeKey = "") {
 
 function Hero({ content }: { content: ContentState }) {
   return (
-    <section className="relative min-h-[90svh]">
+    <section className="hero-sticky relative min-h-[90svh]">
       <div className="absolute inset-0 overflow-hidden bg-foreground">
-        {heroSlides.map((slide, index) => (
-          <img
-            key={slide.src}
-            src={slide.src}
-            alt={slide.alt}
-            className="hero-slide absolute inset-0 h-full w-full object-cover"
-            style={{ animationDelay: `${index * 6}s` }}
-          />
-        ))}
+        <img
+          src={heroImg}
+          alt="LK Clothiers dresses on display"
+          className="hero-zoom-image absolute inset-0 h-full w-full object-cover"
+        />
       </div>
       <div className="absolute inset-0 bg-gradient-to-r from-foreground/70 via-foreground/40 to-foreground/10" />
       <div className="relative z-10 flex items-end lg:items-center min-h-[90svh] px-6 lg:px-12 pb-16 lg:pb-0">
-        <div className="lk-fade-up max-w-xl">
+        <div className="hero-fade-text max-w-xl">
           <p className="eyebrow mb-6 text-white/80">{content.home.heroEyebrow}</p>
-          <h1 className="font-display text-5xl md:text-6xl lg:text-7xl leading-[1.02] text-white">
+          <h1 className="font-[var(--font-hero)] text-4xl font-semibold leading-[1.08] text-white md:text-5xl lg:text-6xl">
             {content.home.heroLineOne}
             <br />
             <em className="italic text-[color:var(--accent)]">{content.home.heroAccent}</em>{" "}
             {content.home.heroLineTwo}
           </h1>
+          <p className="mt-2 font-[var(--font-body)] text-3xl font-medium italic leading-none md:text-4xl">
+            <span className="text-[color:var(--accent)]">Made</span>{" "}
+            <span className="text-white">for you.</span>
+          </p>
           <p className="mt-6 text-base text-white/80 leading-relaxed max-w-sm">
             {content.home.heroCopy}
           </p>
@@ -226,11 +224,11 @@ function Marquee({ content }: { content: ContentState }) {
 
 function Categories({ content }: { content: ContentState }) {
   return (
-    <section className="px-6 lg:px-12 py-24 lg:py-32 max-w-[1400px] mx-auto">
-      <div className="flex items-end justify-between mb-14 reveal">
+    <section className="mx-auto max-w-[1280px] px-6 py-18 lg:px-12 lg:py-24">
+      <div className="mb-10 flex items-end justify-between reveal">
         <div>
           <p className="eyebrow mb-4">{content.home.collectionsEyebrow}</p>
-          <h2 className="font-display text-4xl md:text-5xl lg:text-6xl max-w-2xl leading-[1.05]">
+          <h2 className="max-w-2xl font-display text-4xl leading-[1.05] md:text-5xl">
             {content.home.collectionsTitle}
           </h2>
         </div>
@@ -241,13 +239,13 @@ function Categories({ content }: { content: ContentState }) {
           {content.home.collectionsCta} →
         </Link>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:gap-4">
         {categories.map((c, i) => (
           <Link
             to="/shop/$category"
             params={{ category: c.key }}
             key={c.key}
-            className="product-card group relative overflow-hidden bg-[color:var(--cream)] reveal aspect-[3/4]"
+            className="product-card collection-tile group relative aspect-[4/5] overflow-hidden bg-[color:var(--cream)] reveal"
             style={{ transitionDelay: `${i * 80}ms` }}
           >
             <img
@@ -259,8 +257,8 @@ function Categories({ content }: { content: ContentState }) {
               }`}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 via-foreground/10 to-transparent" />
-            <div className="absolute bottom-0 inset-x-0 p-5 text-background">
-              <p className="font-display text-2xl">{c.name}</p>
+            <div className="absolute inset-x-0 bottom-0 p-4 text-background">
+              <p className="font-display text-xl md:text-2xl">{c.name}</p>
               <p className="text-[10px] uppercase tracking-[0.25em] opacity-80 mt-1">{c.tagline}</p>
             </div>
           </Link>
@@ -274,15 +272,22 @@ function ProductGrid({
   items,
   title,
   eyebrow,
+  columns = 4,
   cta,
 }: {
   items: AdminProduct[];
   title: string;
   eyebrow: string;
+  columns?: 4 | 5;
   cta?: { label: string; to: string };
 }) {
+  const gridClass =
+    columns === 5
+      ? "grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-5 lg:gap-5"
+      : "grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4 lg:gap-6";
+
   return (
-    <section className="px-6 lg:px-12 py-24 lg:py-32 bg-[color:var(--cream)]">
+    <section className="featured-product px-6 lg:px-12 py-24 lg:py-32 bg-[color:var(--cream)]">
       <div className="max-w-[1400px] mx-auto">
         <div className="flex items-end justify-between mb-14 reveal">
           <div>
@@ -298,9 +303,9 @@ function ProductGrid({
             </Link>
           )}
         </div>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+        <div className={gridClass}>
           {items.map((p, i) => (
-            <ProductCard key={p.id} p={p} delay={i * 80} showWhatsApp={false} />
+            <ProductCard key={p.id} p={p} delay={i * 80} showWhatsApp={false} showDetails={false} />
           ))}
         </div>
       </div>
@@ -310,8 +315,11 @@ function ProductGrid({
 
 function About({ content }: { content: ContentState }) {
   return (
-    <section className="grid lg:grid-cols-2 bg-foreground text-background">
-      <div className="relative min-h-[60svh] overflow-hidden bg-[#ed6a12] lg:min-h-[80svh]">
+    <section className="relative z-10 grid lg:grid-cols-2 bg-foreground text-background">
+      <div
+        className="relative min-h-[60svh] overflow-hidden bg-[#ed6a12] lg:min-h-[80svh] reveal"
+        style={{ "--reveal-y": "34px" } as CSSProperties}
+      >
         <img
           src={amaraPrintDressFront}
           alt="LK atelier"
@@ -414,7 +422,7 @@ function Testimonials({ content }: { content: ContentState }) {
               {content.home.testimonials.map((t, i) => (
                 <figure
                   key={`${group}-${i}`}
-                  className="w-[min(82vw,380px)] flex-none bg-background p-8 lg:w-[420px] lg:p-10"
+                  className="testimonial-card w-[min(82vw,380px)] flex-none bg-background p-8 lg:w-[420px] lg:p-10"
                   style={{ transitionDelay: `${i * 100}ms` }}
                 >
                   <div className="text-[color:var(--accent)] text-sm tracking-widest mb-6">
@@ -567,8 +575,8 @@ function Index() {
   const arrivalProducts = [
     ...taggedArrivals,
     ...products.filter((product) => !taggedArrivals.some((arrival) => arrival.id === product.id)),
-  ].slice(0, 4);
-  const bestSellerProducts = products.filter((product) => product.bestSeller).slice(0, 3);
+  ].slice(0, 5);
+  const bestSellerProducts = products.filter((product) => product.bestSeller).slice(0, 4);
 
   return (
     <div ref={ref} className="scroll-smooth">
@@ -579,18 +587,25 @@ function Index() {
         items={arrivalProducts}
         eyebrow={content.home.newArrivalsEyebrow}
         title={content.home.newArrivalsTitle}
+        columns={5}
         cta={{ label: content.home.newArrivalsCta, to: "/shop" }}
       />
-      <section className="px-6 lg:px-12 py-24 lg:py-32 max-w-[1400px] mx-auto">
+      <section className="relative z-10 px-6 lg:px-12 py-24 lg:py-32 max-w-[1400px] mx-auto bg-background">
         <div className="reveal mb-14">
           <p className="eyebrow mb-4">{content.home.bestSellersEyebrow}</p>
           <h2 className="font-display text-4xl md:text-5xl lg:text-6xl max-w-3xl">
             {content.home.bestSellersTitle}
           </h2>
         </div>
-        <div className="grid lg:grid-cols-3 gap-4 lg:gap-6">
+        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4 lg:gap-6">
           {bestSellerProducts.map((p, i) => (
-            <ProductCard key={p.id} p={p} delay={i * 100} showWhatsApp={false} />
+            <ProductCard
+              key={p.id}
+              p={p}
+              delay={i * 100}
+              showWhatsApp={false}
+              showDetails={false}
+            />
           ))}
         </div>
       </section>

@@ -91,7 +91,9 @@
   --gold: oklch(0.68 0.18 45);
   --ink: oklch(0.22 0.04 50);
   --font-display: "Cormorant Garamond", "Playfair Display", Georgia, serif;
-  --font-body: "Inter", "Helvetica Neue", sans-serif;
+  --font-body: "Neue Haas Grotesk", "Inter", "Helvetica Neue", sans-serif;
+  --font-hero: "Canela", "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  --font-cursive: "Dancing Script", "Segoe Script", cursive;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -199,6 +201,31 @@
     transform-origin: left;
   }
 
+  .hero-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 0;
+  }
+  .hero-zoom-image {
+    animation: hero-zoom 9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    transform-origin: center;
+  }
+  .hero-fade-text > * {
+    animation: hero-text-fade 1s ease both;
+  }
+  .hero-fade-text > :nth-child(2) {
+    animation-delay: 120ms;
+  }
+  .hero-fade-text > :nth-child(3) {
+    animation-delay: 220ms;
+  }
+  .hero-fade-text > :nth-child(4) {
+    animation-delay: 320ms;
+  }
+  .hero-fade-text > :nth-child(5) {
+    animation-delay: 420ms;
+  }
+
   .reveal {
     opacity: 0;
     transform: translate3d(var(--reveal-x, 0), var(--reveal-y, 18px), 0)
@@ -269,6 +296,56 @@
     transform: translateY(-8px);
     box-shadow: 0 24px 50px oklch(0.22 0.04 50 / 12%);
   }
+  .featured-product {
+    background-image:
+      linear-gradient(oklch(0.985 0.006 80 / 94%), oklch(0.985 0.006 80 / 94%)),
+      radial-gradient(circle at 50% 20%, oklch(0.68 0.18 45 / 18%), transparent 42%);
+    background-attachment: scroll, fixed;
+    background-position: center;
+  }
+  .featured-product .product-card.reveal:not(.is-in) {
+    transform: translate3d(0, 44px, 0) scale(0.96);
+  }
+  .lookbook-scroll {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-bottom: 1rem;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+  }
+  .lookbook-scroll > figure {
+    flex: 0 0 min(78vw, 360px);
+    scroll-snap-align: start;
+  }
+  @media (min-width: 768px) {
+    .lookbook-scroll > figure {
+      flex-basis: min(32vw, 380px);
+    }
+  }
+  .testimonial-card {
+    opacity: 0;
+    transform: translateY(24px);
+    transition:
+      opacity 0.85s ease,
+      transform 0.85s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .reveal.is-in .testimonial-card {
+    opacity: 1;
+    transform: none;
+  }
+  .footer-reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition:
+      opacity 1s ease,
+      transform 1s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .footer-reveal.is-in {
+    opacity: 1;
+    transform: none;
+  }
   .collection-tile img {
     transition:
       transform 1.2s cubic-bezier(0.2, 0.7, 0.2, 1),
@@ -278,43 +355,24 @@
     transform: scale(1.06);
     filter: brightness(0.95);
   }
-  .hero-slide {
-    opacity: 0;
-    animation: hero-carousel 18s ease-in-out infinite;
-    will-change: opacity, transform;
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .reveal,
     .product-card,
     .product-card img,
     .collection-tile img,
     .lk-fade-up,
+    .hero-zoom-image,
+    .hero-fade-text > *,
     .marquee-track,
-    .hero-slide,
     .testimonial-track,
+    .testimonial-card,
+    .footer-reveal,
     .why-motion .reveal.is-in .scatter-word {
       animation: none !important;
       transition: none !important;
       transform: none !important;
       opacity: 1 !important;
       filter: none !important;
-    }
-    .hero-slide:not(:first-child) {
-      display: none !important;
-    }
-  }
-
-  @keyframes hero-carousel {
-    0%,
-    30% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    38%,
-    100% {
-      opacity: 0;
-      transform: scale(1.045);
     }
   }
 
@@ -328,6 +386,26 @@
     }
     70% {
       transform: translate3d(1px, 1px, 0) rotate(-0.5deg);
+    }
+  }
+
+  @keyframes hero-zoom {
+    from {
+      transform: scale(1.08);
+    }
+    to {
+      transform: scale(1);
+    }
+  }
+
+  @keyframes hero-text-fade {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
     }
   }
 

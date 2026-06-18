@@ -5,7 +5,7 @@ import { productById, ngn } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 import { productWhatsAppUrl } from "@/lib/whatsapp";
 import { useReveal } from "@/hooks/use-reveal";
-import { seedProducts, type AdminProduct } from "@/lib/admin-data";
+import { seedProducts } from "@/lib/admin-data";
 import { useStoreProducts } from "@/hooks/use-store-products";
 
 export const Route = createFileRoute("/product/$id")({
@@ -46,6 +46,7 @@ function ProductPage() {
     setSize(product.sizes[0] ?? "");
     setColor(product.colors[0] ?? "");
     setActive((product.gallery ?? [product.image])[0] ?? "");
+    setQty((currentQty) => Math.min(Math.max(1, currentQty), Math.max(1, product.stock)));
   }, [product]);
 
   if (!product) {
@@ -64,11 +65,13 @@ function ProductPage() {
   }
 
   const gallery = product.gallery ?? [product.image];
+  const inStock = product.stock > 0;
   const related = products
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 4);
 
   const handleAdd = () => {
+    if (!inStock) return;
     add({ id: product.id, size, color, qty });
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
@@ -125,6 +128,15 @@ function ProductPage() {
           <p className="mt-4 font-display text-2xl text-[color:var(--accent)]">
             {ngn(product.price)}
           </p>
+          <p
+            className={`mt-4 inline-flex border px-3 py-1 text-[10px] uppercase tracking-[0.22em] ${
+              inStock
+                ? "border-[color:var(--accent)]/40 text-[color:var(--accent)]"
+                : "border-[color:var(--destructive)]/40 text-[color:var(--destructive)]"
+            }`}
+          >
+            {inStock ? "In Stock" : "Out of Stock"}
+          </p>
           <p className="mt-8 text-sm text-muted-foreground leading-relaxed">
             {product.description}
           </p>
@@ -165,30 +177,45 @@ function ProductPage() {
 
           <div className="mt-8 flex items-center gap-4">
             <div className="flex items-center border border-border">
-              <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="px-4 py-3">
+              <button
+                onClick={() => setQty((q) => Math.max(1, q - 1))}
+                disabled={!inStock}
+                className="px-4 py-3 disabled:cursor-not-allowed disabled:opacity-40"
+              >
                 -
               </button>
               <span className="px-4 tabular-nums">{qty}</span>
-              <button onClick={() => setQty((q) => q + 1)} className="px-4 py-3">
+              <button
+                onClick={() => setQty((q) => Math.min(product.stock, q + 1))}
+                disabled={!inStock || qty >= product.stock}
+                className="px-4 py-3 disabled:cursor-not-allowed disabled:opacity-40"
+              >
                 +
               </button>
             </div>
             <button
               onClick={handleAdd}
-              className="flex-1 bg-[color:var(--accent)] text-white px-7 py-4 text-xs uppercase tracking-[0.25em] hover:bg-foreground transition-colors"
+              disabled={!inStock}
+              className="flex-1 bg-[color:var(--accent)] text-white px-7 py-4 text-xs uppercase tracking-[0.25em] transition-colors hover:bg-foreground disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {added ? "Added to bag" : "Add to Bag"}
+              {!inStock ? "Out of Stock" : added ? "Added to bag" : "Add to Bag"}
             </button>
           </div>
 
-          <a
-            href={productWhatsAppUrl(product.name, product.price, color, size, qty)}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 block text-center border border-[color:var(--accent)] text-[color:var(--accent)] px-7 py-4 text-xs uppercase tracking-[0.25em] hover:bg-[color:var(--accent)] hover:text-white transition-colors"
-          >
-            Checkout on WhatsApp
-          </a>
+          {inStock ? (
+            <a
+              href={productWhatsAppUrl(product.name, product.price, color, size, qty)}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 block text-center border border-[color:var(--accent)] text-[color:var(--accent)] px-7 py-4 text-xs uppercase tracking-[0.25em] hover:bg-[color:var(--accent)] hover:text-white transition-colors"
+            >
+              Checkout on WhatsApp
+            </a>
+          ) : (
+            <span className="mt-3 block cursor-not-allowed border border-border px-7 py-4 text-center text-xs uppercase tracking-[0.25em] text-muted-foreground">
+              Checkout Unavailable
+            </span>
+          )}
 
           <ul className="mt-10 space-y-3 text-xs text-muted-foreground border-t border-border pt-6">
             <li>- Free delivery in Abuja over NGN 100,000</li>

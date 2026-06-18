@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { Menu, ShoppingCart, X } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/lib/cart";
 import logo from "@/assets/lk-logo.png";
@@ -17,13 +18,13 @@ export function Header() {
 
   return (
     <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-md bg-background/85 border-b border-border/60 transition-colors">
-      <div className="max-w-[1400px] mx-auto px-6 lg:px-12 h-20 flex items-center justify-between gap-4">
+      <div className="max-w-[1400px] mx-auto px-6 lg:px-12 h-24 flex items-center justify-between gap-4">
         <button
-          className="md:hidden text-xs uppercase tracking-[0.25em]"
+          className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-[6px] border border-border text-foreground"
           onClick={() => setOpen((o) => !o)}
           aria-label="Menu"
         >
-          {open ? "Close" : "Menu"}
+          {open ? <X size={20} strokeWidth={1.8} /> : <Menu size={22} strokeWidth={1.8} />}
         </button>
         <nav className="hidden md:flex gap-6 text-[11px] uppercase tracking-[0.2em] text-foreground/80">
           {primaryLinks.slice(0, 3).map((l) => (
@@ -42,7 +43,7 @@ export function Header() {
           <img
             src={logo}
             alt="LK Clothiers"
-            className="h-16 w-40 object-contain mix-blend-multiply transition-transform duration-500 hover:scale-[1.03]"
+            className="h-20 w-52 object-contain mix-blend-multiply transition-transform duration-500 hover:scale-[1.03] md:h-24 md:w-60"
           />
         </Link>
         <nav className="hidden md:flex gap-6 text-[11px] uppercase tracking-[0.2em] text-foreground/80 items-center">
@@ -57,12 +58,26 @@ export function Header() {
               {l.label}
             </Link>
           ))}
-          <Link to="/cart" className="lk-link">
-            Bag ({count})
+          <Link
+            to="/cart"
+            className="inline-flex items-center gap-2 lk-link"
+            aria-label={`Cart (${count})`}
+          >
+            <ShoppingCart size={16} strokeWidth={1.7} />
+            <span>({count})</span>
           </Link>
         </nav>
-        <Link to="/cart" className="md:hidden text-[11px] uppercase tracking-[0.25em]">
-          Bag ({count})
+        <Link
+          to="/cart"
+          className="md:hidden relative inline-flex h-10 w-10 items-center justify-center rounded-[6px] border border-border text-foreground"
+          aria-label={`Cart (${count})`}
+        >
+          <ShoppingCart size={19} strokeWidth={1.8} />
+          {count > 0 && (
+            <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-[color:var(--accent)] px-1 text-[10px] font-medium text-white">
+              {count}
+            </span>
+          )}
         </Link>
       </div>
       {open && (
@@ -79,8 +94,13 @@ export function Header() {
                 {l.label}
               </Link>
             ))}
-            <Link to="/cart" onClick={() => setOpen(false)} className="py-1 text-muted-foreground">
-              Bag ({count})
+            <Link
+              to="/cart"
+              onClick={() => setOpen(false)}
+              className="inline-flex items-center gap-2 py-1 text-muted-foreground"
+            >
+              <ShoppingCart size={16} strokeWidth={1.8} />
+              <span>Cart ({count})</span>
             </Link>
           </div>
         </div>

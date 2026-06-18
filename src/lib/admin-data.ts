@@ -1,4 +1,5 @@
 import { categories, products, type CategoryKey, type Product } from "@/lib/catalog";
+import type { CartItem } from "@/lib/cart";
 import { isSupabaseConfigured, supabase, supabaseConfigError } from "@/lib/supabase";
 
 export type ProductStatus = "Live" | "Draft" | "Archived";
@@ -150,8 +151,8 @@ type SiteContentRow = {
 
 export const defaultContent: ContentState = {
   general: {
-    address: "Wuye District,\nAbuja FCT, Nigeria",
-    email: "hello@lkclothiers.com",
+    address: "Block C, Suite 13 & 14,\nH & A Plaza, Wuye,\nAbuja FCT, Nigeria",
+    email: "lkclothiers@gmail.com",
     instagram: "@lk_clothiers",
     phoneDisplay: "+234 817 195 0268",
     hours: "Mon - Sat - 10:00 - 19:00",
@@ -262,7 +263,7 @@ export const defaultContent: ContentState = {
     contactLabel: "Contact",
     directionsCta: "Get directions",
     mapTitle: "LK Atelier",
-    mapLocation: "Wuye, Abuja",
+    mapLocation: "Block C, Suite 13 & 14, H & A Plaza, Wuye, Abuja",
   },
   shop: {
     eyebrow: "Shop LK Clothiers",
@@ -404,9 +405,10 @@ const replacedSeedProductIds = new Set([
   "gold-kaftan",
   "ivory-gown",
 ]);
+const localStockKey = "lk_stock_overrides_v1";
 
 export async function listAdminProducts(): Promise<AdminProduct[]> {
-  if (!isSupabaseConfigured || !supabase) return seedProducts;
+  if (!isSupabaseConfigured || !supabase) return applyLocalStockOverrides(seedProducts);
 
   const { data, error } = await supabase
     .from("products")
@@ -440,6 +442,30 @@ export async function deleteAdminProduct(id: string): Promise<void> {
 
   const { error } = await client.from("products").delete().eq("id", id);
   if (error) throw error;
+}
+
+export async function decrementProductStock(items: Pick<CartItem, "id" | "qty">[]): Promise<void> {
+  const quantities = items.reduce<Record<string, number>>((total, item) => {
+    total[item.id] = (total[item.id] ?? 0) + item.qty;
+    return total;
+  }, {});
+
+  if (!isSupabaseConfigured || !supabase) {
+    decrementLocalStock(quantities);
+    return;
+  }
+
+  const currentProducts = await listAdminProducts();
+  await Promise.all(
+    Object.entries(quantities).map(async ([id, purchasedQty]) => {
+      const product = currentProducts.find((item) => item.id === id);
+      if (!product) return;
+      await upsertAdminProduct({
+        ...product,
+        stock: Math.max(0, product.stock - purchasedQty),
+      });
+    }),
+  );
 }
 
 export async function uploadProductImage(file: File, productId: string): Promise<string> {
@@ -514,6 +540,46 @@ function mergeWithSeedProducts(remoteProducts: AdminProduct[]): AdminProduct[] {
     ...remoteProducts,
     ...seedProducts.filter((product) => product.status === "Live" && !remoteIds.has(product.id)),
   ];
+}
+
+function applyLocalStockOverrides(productList: AdminProduct[]): AdminProduct[] {
+  const overrides = readLocalStockOverrides();
+  if (!overrides) return productList;
+
+  return productList.map((product) => ({
+    ...product,
+    stock: typeof overrides[product.id] === "number" ? overrides[product.id] : product.stock,
+  }));
+}
+
+function decrementLocalStock(quantities: Record<string, number>) {
+  if (typeof window === "undefined") return;
+
+  const currentProducts = applyLocalStockOverrides(seedProducts);
+  const overrides = readLocalStockOverrides() ?? {};
+
+  Object.entries(quantities).forEach(([id, purchasedQty]) => {
+    const product = currentProducts.find((item) => item.id === id);
+    if (!product) return;
+    overrides[id] = Math.max(0, product.stock - purchasedQty);
+  });
+
+  window.localStorage.setItem(localStockKey, JSON.stringify(overrides));
+}
+
+function readLocalStockOverrides(): Record<string, number> | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.localStorage.getItem(localStockKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return isPlainObject(parsed)
+      ? Object.fromEntries(Object.entries(parsed).filter(([, value]) => typeof value === "number"))
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function productToRow(product: AdminProduct): ProductRow {

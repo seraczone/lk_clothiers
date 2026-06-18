@@ -264,8 +264,10 @@ const content = {
       { title: "Silk Flare", caption: "Statement print" },
     ],
   },
-  address: "Wuye District, Abuja FCT, Nigeria",
-  email: "hello@lkclothiers.com",
+  general: {
+    address: "Block C, Suite 13 & 14,\nH & A Plaza, Wuye,\nAbuja FCT, Nigeria",
+    email: "lkclothiers@gmail.com",
+  },
   instagram: "@lk_clothiers",
 };
 

@@ -21,6 +21,8 @@ export const Route = createFileRoute("/contact")({
 function ContactPage() {
   const [sent, setSent] = useState(false);
   const content = useSiteContent();
+  const mapAddress = "Block C, Suite 13 & 14, H & A Plaza, Wuye, Abuja";
+  const encodedMapAddress = encodeURIComponent(mapAddress);
 
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-16 lg:px-12 lg:py-20">
@@ -103,12 +105,20 @@ function ContactPage() {
           </div>
           <div className="relative aspect-[4/3] overflow-hidden border border-border bg-[color:var(--cream)]">
             <iframe
-              title="Map of LK Clothiers Wuye Abuja"
+              title="Map of LK Clothiers at H & A Plaza, Wuye, Abuja"
               className="absolute inset-0 h-full w-full"
               loading="lazy"
-              src="https://www.openstreetmap.org/export/embed.html?bbox=7.4310%2C9.0490%2C7.4910%2C9.0890&layer=mapnik&marker=9.0690%2C7.4610"
+              src={`https://maps.google.com/maps?q=${encodedMapAddress}&t=&z=18&ie=UTF8&iwloc=&output=embed`}
             />
           </div>
+          <a
+            className="lk-link inline-block text-sm"
+            href={`https://www.google.com/maps/search/?api=1&query=${encodedMapAddress}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Open exact location in Google Maps
+          </a>
         </section>
       </div>
     </div>

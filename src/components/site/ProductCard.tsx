@@ -9,18 +9,38 @@ export function ProductCard({
   p,
   delay = 0,
   showWhatsApp = true,
+  showDetails = true,
 }: {
   p: Product;
   delay?: number;
   showWhatsApp?: boolean;
+  showDetails?: boolean;
 }) {
-  const { add } = useCart();
+  const { add, items, remove } = useCart();
   const [added, setAdded] = useState(false);
+  const stock =
+    typeof (p as Product & { stock?: number }).stock === "number"
+      ? (p as Product & { stock: number }).stock
+      : undefined;
+  const inStock = stock === undefined || stock > 0;
+  const defaultSize = p.sizes[0];
+  const defaultColor = p.colors[0];
+  const isInCart = items.some(
+    (item) => item.id === p.id && item.size === defaultSize && item.color === defaultColor,
+  );
 
   const handleAdd = (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    add({ id: p.id, size: p.sizes[0], color: p.colors[0], qty: 1 });
+    if (!inStock) return;
+
+    if (isInCart) {
+      remove(p.id, defaultSize, defaultColor);
+      setAdded(false);
+      return;
+    }
+
+    add({ id: p.id, size: defaultSize, color: defaultColor, qty: 1 });
     setAdded(true);
     setTimeout(() => setAdded(false), 1600);
   };
@@ -63,6 +83,11 @@ export function ProductCard({
             {p.tag}
           </span>
         )}
+        {!inStock && (
+          <span className="absolute top-3 right-3 bg-background/90 px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-[color:var(--destructive)]">
+            Out
+          </span>
+        )}
         <span className="absolute bottom-3 left-3 right-3 translate-y-3 opacity-0 bg-background/90 px-3 py-2 text-center text-[10px] uppercase tracking-[0.2em] text-foreground transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">
           View finish and fit
         </span>
@@ -73,20 +98,23 @@ export function ProductCard({
       <p className="text-xs text-muted-foreground mt-1">
         {ngn(p.price)} - <span className="capitalize">{p.category}</span>
       </p>
-      <div className="mt-3 grid grid-cols-2 gap-2">
+      <div className={`mt-3 grid gap-2 ${showDetails ? "grid-cols-2" : "grid-cols-1"}`}>
         <button
           onClick={handleAdd}
-          className="min-h-10 rounded-[6px] bg-[color:var(--accent)] px-2 py-2.5 text-[9px] font-medium uppercase tracking-[0.14em] text-white shadow-sm transition-colors hover:bg-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--accent)] sm:px-3 sm:text-[10px] sm:tracking-[0.2em]"
+          disabled={!inStock}
+          className="min-h-10 rounded-[6px] bg-[color:var(--accent)] px-2 py-2.5 text-[9px] font-medium uppercase tracking-[0.14em] text-white shadow-sm transition-colors hover:bg-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--accent)] disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 sm:text-[10px] sm:tracking-[0.2em]"
         >
-          {added ? "Added" : "Add to Bag"}
+          {!inStock ? "Out of Stock" : isInCart ? "Remove" : added ? "Added" : "Add to Bag"}
         </button>
-        <Link
-          to="/product/$id"
-          params={{ id: p.id }}
-          className="min-h-10 rounded-[6px] border border-foreground/60 bg-background/70 px-2 py-2.5 text-center text-[9px] font-medium uppercase tracking-[0.14em] transition-colors hover:border-foreground hover:bg-foreground hover:text-background focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground sm:px-3 sm:text-[10px] sm:tracking-[0.2em]"
-        >
-          Details
-        </Link>
+        {showDetails && (
+          <Link
+            to="/product/$id"
+            params={{ id: p.id }}
+            className="min-h-10 rounded-[6px] border border-foreground/60 bg-background/70 px-2 py-2.5 text-center text-[9px] font-medium uppercase tracking-[0.14em] transition-colors hover:border-foreground hover:bg-foreground hover:text-background focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground sm:px-3 sm:text-[10px] sm:tracking-[0.2em]"
+          >
+            Details
+          </Link>
+        )}
       </div>
       {showWhatsApp && (
         <a
