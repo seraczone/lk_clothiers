@@ -56,7 +56,7 @@ function CheckoutPage() {
   if (items.length === 0) {
     return (
       <div className="px-6 lg:px-12 py-32 max-w-xl mx-auto text-center lk-fade-up">
-        <p className="font-display text-2xl">Your bag is empty.</p>
+        <p className="font-display text-2xl">Your cart is empty.</p>
       </div>
     );
   }

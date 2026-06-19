@@ -574,9 +574,12 @@ function readLocalStockOverrides(): Record<string, number> | null {
     const raw = window.localStorage.getItem(localStockKey);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return isPlainObject(parsed)
-      ? Object.fromEntries(Object.entries(parsed).filter(([, value]) => typeof value === "number"))
-      : null;
+    if (!isPlainObject(parsed)) return null;
+
+    return Object.entries(parsed).reduce<Record<string, number>>((acc, [key, value]) => {
+      if (typeof value === "number") acc[key] = value;
+      return acc;
+    }, {});
   } catch {
     return null;
   }

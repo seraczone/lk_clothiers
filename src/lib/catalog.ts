@@ -3,12 +3,13 @@ import amaraPrintDressPrimary from "@/assets/amara-print-dress-primary.png";
 import amaraPrintDressSide from "@/assets/amara-print-dress-side.png";
 import girlDressesAsset from "@/assets/girl-dresses.png";
 
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, "");
+const publicSupabaseUrl = "https://mtymltempomoqdbfhngw.supabase.co";
+const supabaseUrl =
+  (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, "") ??
+  publicSupabaseUrl;
 
 const productImage = (filename: string) =>
-  supabaseUrl
-    ? `${supabaseUrl}/storage/v1/object/public/product-images/${filename}`
-    : `/assets/${filename}`;
+  `${supabaseUrl}/storage/v1/object/public/product-images/${filename}`;
 
 export const catalogImages = {
   adireBlueBurgundy: productImage("adire-blue-burgundy.jpeg"),

@@ -6,7 +6,7 @@ import { checkoutWhatsAppUrl } from "@/lib/whatsapp";
 import { useReveal } from "@/hooks/use-reveal";
 
 export const Route = createFileRoute("/cart")({
-  head: () => ({ meta: [{ title: "Bag - LK Clothiers" }] }),
+  head: () => ({ meta: [{ title: "Cart - LK Clothiers" }] }),
   component: CartPage,
 });
 
@@ -18,13 +18,13 @@ function CartPage() {
   return (
     <div ref={ref} className="px-6 lg:px-12 py-16 lg:py-20 max-w-[1200px] mx-auto">
       <div className="reveal" style={{ "--reveal-x": "-28px" } as CSSProperties}>
-        <p className="eyebrow mb-3">Your Bag</p>
-        <h1 className="font-display text-4xl md:text-5xl mb-12">Bag ({count})</h1>
+        <p className="eyebrow mb-3">Your Cart</p>
+        <h1 className="font-display text-4xl md:text-5xl mb-12">Cart ({count})</h1>
       </div>
 
       {items.length === 0 ? (
         <div className="border border-border p-12 text-center reveal">
-          <p className="font-display text-2xl mb-4">Your bag is empty.</p>
+          <p className="font-display text-2xl mb-4">Your cart is empty.</p>
           <p className="text-sm text-muted-foreground mb-8">Begin with our latest arrivals.</p>
           <Link
             to="/shop"
