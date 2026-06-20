@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import type { Session } from "@supabase/supabase-js";
 import {
   BarChart3,
   Check,
@@ -7,6 +8,8 @@ import {
   Eye,
   FileText,
   LayoutDashboard,
+  LockKeyhole,
+  LogOut,
   Megaphone,
   Package,
   Plus,
@@ -35,7 +38,7 @@ import {
   type ProductStatus,
 } from "@/lib/admin-data";
 import { ngn, products, type CategoryKey } from "@/lib/catalog";
-import { isSupabaseConfigured, supabaseConfigError } from "@/lib/supabase";
+import { isSupabaseConfigured, supabase, supabaseConfigError } from "@/lib/supabase";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin - LK Clothiers" }] }),
@@ -77,7 +80,229 @@ const tabs: { key: Tab; label: string; icon: ReactNode }[] = [
   { key: "settings", label: "Settings", icon: <Settings size={16} /> },
 ];
 
+const adminEmails = [
+  import.meta.env.VITE_ADMIN_EMAIL as string | undefined,
+  import.meta.env.VITE_ADMIN_EMAILS as string | undefined,
+]
+  .flatMap((value) => value?.split(",") ?? [])
+  .map((email) => email.trim().toLowerCase())
+  .filter(Boolean);
+
+function isAllowedAdmin(email: string | null | undefined) {
+  return Boolean(email && adminEmails.includes(email.trim().toLowerCase()));
+}
+
 function AdminPage() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState("");
+
+  useEffect(() => {
+    if (!supabase) {
+      setIsAuthLoading(false);
+      return;
+    }
+
+    let mounted = true;
+
+    supabase.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (!mounted) return;
+        if (error) {
+          setAuthError(error.message);
+          return;
+        }
+        setSession(data.session);
+      })
+      .finally(() => {
+        if (mounted) setIsAuthLoading(false);
+      });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      setAuthError("");
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const userEmail = session?.user.email ?? "";
+  const canAccessAdmin = isAllowedAdmin(userEmail);
+
+  if (isAuthLoading) {
+    return <AdminAuthShell message="Checking admin access..." />;
+  }
+
+  if (!supabase || !isSupabaseConfigured) {
+    return <AdminLoginScreen configError={supabaseConfigError} />;
+  }
+
+  if (!canAccessAdmin) {
+    return (
+      <AdminLoginScreen
+        authError={authError}
+        signedInEmail={session ? userEmail : ""}
+        onSignOut={() => supabase.auth.signOut()}
+      />
+    );
+  }
+
+  return <AdminConsole userEmail={userEmail} onSignOut={() => supabase.auth.signOut()} />;
+}
+
+function AdminLoginScreen({
+  authError = "",
+  configError = "",
+  signedInEmail = "",
+  onSignOut,
+}: {
+  authError?: string;
+  configError?: string;
+  signedInEmail?: string;
+  onSignOut?: () => Promise<unknown>;
+}) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(authError);
+
+  useEffect(() => {
+    setError(authError);
+  }, [authError]);
+
+  const isAdminConfigured = adminEmails.length > 0;
+  const isLockedOut = Boolean(configError || !isAdminConfigured);
+
+  const submitLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+
+    if (!supabase) {
+      setError(supabaseConfigError);
+      return;
+    }
+
+    if (!isAllowedAdmin(email)) {
+      setError("This email is not allowed to access the admin console.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    setIsSubmitting(false);
+
+    if (signInError) {
+      setError(signInError.message);
+    }
+  };
+
+  if (signedInEmail) {
+    return (
+      <AdminAuthShell>
+        <div className="mx-auto max-w-md rounded-[8px] border border-border bg-background p-6 shadow-sm">
+          <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-[6px] bg-[color:var(--cream)] text-[color:var(--accent)]">
+            <LockKeyhole size={20} />
+          </div>
+          <p className="eyebrow mb-2">Access denied</p>
+          <h1 className="font-display text-4xl">Admin only</h1>
+          <p className="mt-4 text-sm leading-6 text-muted-foreground">
+            {signedInEmail} is signed in, but that email is not on the admin allowlist.
+          </p>
+          <button
+            onClick={onSignOut}
+            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-[6px] bg-[color:var(--accent)] px-4 py-3 text-xs uppercase tracking-[0.18em] text-white transition-colors hover:bg-foreground"
+          >
+            <LogOut size={15} />
+            Sign out
+          </button>
+        </div>
+      </AdminAuthShell>
+    );
+  }
+
+  return (
+    <AdminAuthShell>
+      <div className="mx-auto max-w-md rounded-[8px] border border-border bg-background p-6 shadow-sm">
+        <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-[6px] bg-[color:var(--cream)] text-[color:var(--accent)]">
+          <LockKeyhole size={20} />
+        </div>
+        <p className="eyebrow mb-2">Owner Workspace</p>
+        <h1 className="font-display text-4xl">Admin sign in</h1>
+        <p className="mt-4 text-sm leading-6 text-muted-foreground">
+          Sign in with the Supabase account assigned to manage LK Clothiers.
+        </p>
+
+        {(configError || !isAdminConfigured || error) && (
+          <div className="mt-5 rounded-[6px] border border-[color:var(--destructive)] bg-[color:var(--destructive)]/8 px-4 py-3 text-sm text-[color:var(--destructive)]">
+            {configError ||
+              (!isAdminConfigured
+                ? "Admin email is not configured. Add VITE_ADMIN_EMAIL or VITE_ADMIN_EMAILS to the environment."
+                : error)}
+          </div>
+        )}
+
+        <form onSubmit={submitLogin} className="mt-6 space-y-4">
+          <Field
+            label="Admin Email"
+            type="email"
+            value={email}
+            onChange={setEmail}
+            disabled={isLockedOut || isSubmitting}
+          />
+          <Field
+            label="Password"
+            type="password"
+            value={password}
+            onChange={setPassword}
+            disabled={isLockedOut || isSubmitting}
+          />
+          <button
+            disabled={isLockedOut || isSubmitting}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-[6px] bg-[color:var(--accent)] px-4 py-3 text-xs uppercase tracking-[0.18em] text-white transition-colors hover:bg-foreground disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+          >
+            <LockKeyhole size={15} />
+            {isSubmitting ? "Signing in..." : "Sign in"}
+          </button>
+        </form>
+      </div>
+    </AdminAuthShell>
+  );
+}
+
+function AdminAuthShell({
+  message,
+  children,
+}: {
+  message?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="-mt-16 flex min-h-screen items-center justify-center bg-[color:var(--cream)] px-4 py-20 text-foreground">
+      {children ?? (
+        <div className="rounded-[8px] border border-border bg-background px-5 py-4 text-sm text-muted-foreground shadow-sm">
+          {message}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminConsole({
+  userEmail,
+  onSignOut,
+}: {
+  userEmail: string;
+  onSignOut: () => Promise<unknown>;
+}) {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [adminProducts, setAdminProducts] = useState<AdminProduct[]>(seedProducts);
   const [content, setContent] = useState<ContentState>(defaultContent);
@@ -137,8 +362,15 @@ function AdminPage() {
             <div className="mt-auto border-t border-background/10 pt-5 text-[10px] uppercase tracking-[0.2em] text-background/45">
               <p>Owner Workspace</p>
               <p className="mt-1 normal-case tracking-normal text-background/70">
-                lk@clothiers.com
+                {userEmail}
               </p>
+              <button
+                onClick={onSignOut}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-[6px] border border-background/20 px-3 py-2.5 text-[10px] uppercase tracking-[0.18em] text-background/70 transition-colors hover:border-background/50 hover:text-background"
+              >
+                <LogOut size={14} />
+                Sign out
+              </button>
             </div>
           </div>
         </aside>
