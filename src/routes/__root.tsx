@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -15,6 +15,7 @@ import { CartProvider } from "../lib/cart";
 import { Header } from "../components/site/Header";
 import { Footer } from "../components/site/Footer";
 import { WhatsAppFab } from "../components/site/WhatsAppFab";
+import preloaderImage from "../assets/lk-preloader.png";
 
 function NotFoundComponent() {
   return (
@@ -128,10 +129,25 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const [showPreloader, setShowPreloader] = useState(true);
+
+  useEffect(() => {
+    document.body.classList.add("lk-preloader-active");
+    const timer = window.setTimeout(() => {
+      setShowPreloader(false);
+      document.body.classList.remove("lk-preloader-active");
+    }, 3200);
+
+    return () => {
+      window.clearTimeout(timer);
+      document.body.classList.remove("lk-preloader-active");
+    };
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
       <CartProvider>
+        {showPreloader && <SitePreloader />}
         <div className="bg-background text-foreground overflow-x-hidden">
           <Header />
           <main className="pt-16">
@@ -143,5 +159,18 @@ function RootComponent() {
         </div>
       </CartProvider>
     </QueryClientProvider>
+  );
+}
+
+function SitePreloader() {
+  return (
+    <div className="lk-site-preloader" role="status" aria-label="Loading LK Clothiers">
+      <div className="lk-site-preloader__glow" />
+      <img
+        src={preloaderImage}
+        alt="LK Clothiers tailoring scissors and measuring tape"
+        className="lk-site-preloader__image"
+      />
+    </div>
   );
 }

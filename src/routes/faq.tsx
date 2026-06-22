@@ -37,7 +37,9 @@ function FaqPage() {
               </span>
             </button>
             {open === index && (
-              <p className="pb-6 text-sm leading-relaxed text-muted-foreground">{item.answer}</p>
+              <p className="whitespace-pre-line pb-6 text-sm leading-relaxed text-muted-foreground">
+                {item.answer}
+              </p>
             )}
           </div>
         ))}
@@ -54,7 +56,7 @@ function FaqPage() {
           <summary className="cursor-pointer font-display text-base text-foreground">
             {content.faq.termsTitle}
           </summary>
-          <p className="mt-4 leading-relaxed">{content.faq.termsCopy}</p>
+          <p className="mt-4 whitespace-pre-line leading-relaxed">{content.faq.termsCopy}</p>
         </details>
       </div>
     </div>

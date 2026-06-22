@@ -32,9 +32,11 @@ function AboutPage() {
               <em className="italic text-[color:var(--accent)]">{content.about.headlineAccent}</em>
               {content.about.headlineSuffix}
             </h1>
-            <p className="mt-8 text-base leading-relaxed text-muted-foreground">
-              {content.about.copy}
-            </p>
+            <div className="mt-8 space-y-4 text-base leading-relaxed text-muted-foreground">
+              {content.about.copy.split("\n\n").map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </div>
           </div>
         </div>
         <div className="relative min-h-[40svh]">
@@ -79,7 +81,11 @@ function AboutPage() {
             <h2 className="font-display text-4xl leading-tight lg:text-5xl">
               {content.about.whyTitle}
             </h2>
-            <p className="mt-6 leading-relaxed text-background/70">{content.about.whyCopy}</p>
+            <div className="mt-6 space-y-4 leading-relaxed text-background/70">
+              {content.about.whyCopy.split("\n\n").map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </div>
             <Link
               to="/shop"
               className="mt-10 inline-block border border-background/40 px-7 py-4 text-xs uppercase tracking-[0.25em] transition-colors hover:bg-background hover:text-foreground"

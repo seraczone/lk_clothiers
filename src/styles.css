@@ -157,6 +157,10 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  body.lk-preloader-active {
+    overflow: hidden;
+  }
+
   h1,
   h2,
   h3,
@@ -199,6 +203,40 @@
   .lk-link:hover::after {
     transform: scaleX(1);
     transform-origin: left;
+  }
+
+  .lk-site-preloader {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at center, oklch(0.28 0.08 45 / 42%), transparent 34rem),
+      oklch(0.03 0.01 50);
+    animation: lk-preloader-fade 3.2s ease forwards;
+  }
+
+  .lk-site-preloader__glow {
+    position: absolute;
+    width: min(72vw, 34rem);
+    aspect-ratio: 1;
+    border-radius: 999px;
+    background: radial-gradient(circle, oklch(0.68 0.18 45 / 26%), transparent 66%);
+    filter: blur(22px);
+    animation: lk-preloader-pulse 1.35s ease-in-out infinite;
+  }
+
+  .lk-site-preloader__image {
+    position: relative;
+    width: min(76vw, 31rem);
+    max-height: 76vh;
+    object-fit: contain;
+    filter: drop-shadow(0 28px 48px oklch(0 0 0 / 48%));
+    transform-origin: center;
+    animation: lk-preloader-roll 1.05s linear infinite;
+    will-change: transform;
   }
 
   .hero-sticky {
@@ -367,12 +405,50 @@
     .testimonial-track,
     .testimonial-card,
     .footer-reveal,
-    .why-motion .reveal.is-in .scatter-word {
+    .why-motion .reveal.is-in .scatter-word,
+    .lk-site-preloader,
+    .lk-site-preloader__glow,
+    .lk-site-preloader__image {
       animation: none !important;
       transition: none !important;
       transform: none !important;
       opacity: 1 !important;
       filter: none !important;
+    }
+  }
+
+  @keyframes lk-preloader-roll {
+    from {
+      transform: rotate(0deg) scale(0.92);
+    }
+    to {
+      transform: rotate(360deg) scale(0.92);
+    }
+  }
+
+  @keyframes lk-preloader-pulse {
+    0%,
+    100% {
+      opacity: 0.55;
+      transform: scale(0.9);
+    }
+    50% {
+      opacity: 0.95;
+      transform: scale(1.06);
+    }
+  }
+
+  @keyframes lk-preloader-fade {
+    0%,
+    78% {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+    100% {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
     }
   }
 

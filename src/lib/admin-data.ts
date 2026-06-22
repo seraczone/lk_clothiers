@@ -282,15 +282,16 @@ export const defaultContent: ContentState = {
   },
   about: {
     eyebrow: "Our Story",
-    headlinePrefix: "A quiet study in",
-    headlineAccent: "modern modesty",
+    headlinePrefix: "Ready to wear,",
+    headlineAccent: "bespoke",
     headlineSuffix: ".",
-    copy: "LK Clothiers was founded in Abuja in 2019 with a single belief - that modesty and elegance are not opposites, but partners. We design pieces that women and their families can wear for years, in fabrics that age beautifully and silhouettes that quietly turn heads.",
+    copy:
+      "LK Clothiers is a fantastic READY TO WEAR & BESPOKE brand that caters to both kids and women with a focus on quality, modesty, simplicity, and customer satisfaction.\n\nWe offer ready-to-wear for customer convenience, making ready-to-wear clothes readily available in store for customers who need clothing without the wait time associated with bespoke pieces.\n\nReady-to-wear collections also offer variety: a wide range of styles, sizes, colours, and designs to choose from, giving customers more options to suit their personal tastes and preferences. Our ready-to-wear pieces include casual, office-friendly, and special-event clothing, as well as kids' pieces for girls and boys.",
     pillars: [
       {
-        title: "Mission",
+        title: "Our Mission",
         description:
-          "To make premium modest fashion accessible to the modern African woman and her family - designed, cut and finished with intention.",
+          "To provide unique and beautiful clothes by using quality fabrics and producing well-finished pieces. To keep building trust and confidence with customers by providing a 100% money-back guarantee.",
       },
       {
         title: "Vision",
@@ -340,7 +341,7 @@ export const defaultContent: ContentState = {
       {
         question: "What is your returns policy?",
         answer:
-          "We accept returns within 7 days of delivery for unworn pieces with tags. Bespoke or altered pieces are final sale.",
+          "We offer exchange/refund based on terms and conditions. Clothes must not be worn, scented, or otherwise altered, and must be neatly packaged as received.",
       },
       {
         question: "How do I know my size?",
@@ -370,9 +371,9 @@ export const defaultContent: ContentState = {
     privacyTitle: "Privacy Policy",
     privacyCopy:
       "We collect only the information needed to fulfil your orders. We never sell your data and use industry-standard encryption to keep your details safe.",
-    termsTitle: "Terms & Conditions",
+    termsTitle: "Exchange/Refund",
     termsCopy:
-      "By using lkclothiers.com you agree to our terms regarding orders, returns, intellectual property and acceptable use. Full terms available on request.",
+      "We offer exchange/refund based on terms and conditions.\n\n1. Clothes didn't fit (size mixed up from us).\n2. Clothes must be returned within 24hrs within Abuja and 48-72hrs outside Abuja.\n3. Clothes must not be worn.\n4. Clothes must not be scented or otherwise altered.\n5. Clothes must be neatly packaged as received.",
   },
 };
 
