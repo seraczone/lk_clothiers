@@ -1,7 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { products, ngn } from "@/lib/catalog";
 import { WHATSAPP_DISPLAY } from "@/lib/whatsapp";
+import {
+  deliveryMethodLabels,
+  formatOrderDate,
+  readLocalOrders,
+  type SavedOrder,
+} from "@/lib/orders";
 
 export const Route = createFileRoute("/account")({
   head: () => ({ meta: [{ title: "My Account — LK Clothiers" }] }),
@@ -16,7 +22,12 @@ const mockOrders = [
 
 function AccountPage() {
   const [tab, setTab] = useState<"orders" | "saved" | "profile">("orders");
+  const [orders, setOrders] = useState<SavedOrder[]>([]);
   const saved = products.slice(0, 3);
+
+  useEffect(() => {
+    setOrders(readLocalOrders());
+  }, []);
 
   return (
     <div className="px-6 lg:px-12 py-16 max-w-[1200px] mx-auto">
@@ -54,19 +65,31 @@ function AccountPage() {
                   <span>Total</span>
                   <span>Status</span>
                 </div>
-                {mockOrders.map((o) => (
+                {[...orders, ...mockOrders].map((o) => (
                   <div
                     key={o.id}
-                    className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-4 px-5 py-4 text-sm border-b border-border last:border-0 items-center"
+                    className="grid gap-3 border-b border-border px-5 py-4 text-sm last:border-0 md:grid-cols-[1fr_1fr_1fr_1fr] md:items-center"
                   >
                     <span className="font-display">{o.id}</span>
-                    <span>{o.date}</span>
+                    <span>{"createdAt" in o ? formatOrderDate(o.createdAt) : o.date}</span>
                     <span className="tabular-nums">{ngn(o.total)}</span>
-                    <span
-                      className={`text-xs uppercase tracking-[0.2em] ${o.status === "Delivered" ? "text-[color:var(--accent)]" : "text-muted-foreground"}`}
-                    >
-                      {o.status}
+                    <span>
+                      <span
+                        className={`block text-xs uppercase tracking-[0.2em] ${o.status === "Delivered" ? "text-[color:var(--accent)]" : "text-muted-foreground"}`}
+                      >
+                        {o.status}
+                      </span>
+                      {"deliveryMethod" in o && (
+                        <span className="mt-1 block text-xs text-muted-foreground">
+                          {deliveryMethodLabels[o.deliveryMethod]}
+                        </span>
+                      )}
                     </span>
+                    {"deliveryAddress" in o && o.deliveryAddress && (
+                      <span className="text-xs leading-relaxed text-muted-foreground md:col-span-4">
+                        Delivery address: {o.deliveryAddress}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>

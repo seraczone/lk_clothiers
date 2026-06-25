@@ -1,12 +1,33 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Star } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import type { CSSProperties } from "react";
-import { productById, ngn } from "@/lib/catalog";
+import { productById, ngn, type Product } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 import { productWhatsAppUrl } from "@/lib/whatsapp";
 import { useReveal } from "@/hooks/use-reveal";
 import { seedProducts } from "@/lib/admin-data";
 import { useStoreProducts } from "@/hooks/use-store-products";
+import {
+  getSeedReviews,
+  categoryName,
+  productJsonLd,
+  ratingLabel,
+  readStoredReviews,
+  reviewProductLine,
+  saveStoredReview,
+  summarizeReviews,
+  type CustomerReview,
+} from "@/lib/reviews";
+import {
+  absoluteUrl,
+  breadcrumbJsonLd,
+  collectionUrl,
+  productMetaDescription,
+  productUrl,
+} from "@/lib/seo";
+import { JsonLd } from "@/components/site/JsonLd";
 
 export const Route = createFileRoute("/product/$id")({
   head: ({ params }) => {
@@ -14,8 +35,24 @@ export const Route = createFileRoute("/product/$id")({
     return {
       meta: [
         { title: p ? `${p.name} - LK Clothiers` : "LK Clothiers" },
-        { name: "description", content: p?.description ?? "" },
+        { name: "description", content: p ? productMetaDescription(p) : "" },
+        { name: "robots", content: p ? "index,follow" : "noindex,follow" },
+        { name: "googlebot", content: "index,follow,max-image-preview:large" },
+        { property: "og:title", content: p ? `${p.name} - LK Clothiers` : "LK Clothiers" },
+        { property: "og:description", content: p ? productMetaDescription(p) : "" },
+        { property: "og:type", content: "product" },
+        { property: "og:url", content: p ? productUrl(p.id) : absoluteUrl("/shop") },
         { property: "og:image", content: p?.image ?? "" },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: p ? `${p.name} - LK Clothiers` : "LK Clothiers" },
+        { name: "twitter:description", content: p ? productMetaDescription(p) : "" },
+        { name: "twitter:image", content: p?.image ?? "" },
+      ],
+      links: [
+        {
+          rel: "canonical",
+          href: p ? productUrl(p.id) : absoluteUrl("/shop"),
+        },
       ],
     };
   },
@@ -39,6 +76,13 @@ function ProductPage() {
   const [zoom, setZoom] = useState(false);
   const [added, setAdded] = useState(false);
   const [active, setActive] = useState("");
+  const [storedReviews, setStoredReviews] = useState<CustomerReview[]>([]);
+  const [reviewName, setReviewName] = useState("");
+  const [reviewCity, setReviewCity] = useState("");
+  const [reviewTitle, setReviewTitle] = useState("");
+  const [reviewBody, setReviewBody] = useState("");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewSaved, setReviewSaved] = useState(false);
   const ref = useReveal<HTMLDivElement>();
 
   useEffect(() => {
@@ -48,6 +92,10 @@ function ProductPage() {
     setActive((product.gallery ?? [product.image])[0] ?? "");
     setQty((currentQty) => Math.min(Math.max(1, currentQty), Math.max(1, product.stock)));
   }, [product]);
+
+  useEffect(() => {
+    setStoredReviews(readStoredReviews(productId));
+  }, [productId]);
 
   if (!product) {
     return (
@@ -66,6 +114,9 @@ function ProductPage() {
 
   const gallery = product.gallery ?? [product.image];
   const inStock = product.stock > 0;
+  const seedReviews = getSeedReviews(product);
+  const reviews = [...storedReviews, ...seedReviews];
+  const reviewSummary = summarizeReviews(reviews);
   const related = products
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 4);
@@ -77,8 +128,45 @@ function ProductPage() {
     setTimeout(() => setAdded(false), 1800);
   };
 
+  const handleReviewSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const author = reviewName.trim();
+    const body = reviewBody.trim();
+    if (!author || !body) return;
+
+    const review: CustomerReview = {
+      id: `review-${product.id}-${Date.now()}`,
+      productId: product.id,
+      author,
+      city: reviewCity.trim() || "Nigeria",
+      rating: reviewRating,
+      title: reviewTitle.trim() || "Customer review",
+      body,
+      datePublished: new Date().toISOString().slice(0, 10),
+    };
+
+    saveStoredReview(review);
+    setStoredReviews((current) => [review, ...current]);
+    setReviewName("");
+    setReviewCity("");
+    setReviewTitle("");
+    setReviewBody("");
+    setReviewRating(5);
+    setReviewSaved(true);
+    window.setTimeout(() => setReviewSaved(false), 2400);
+  };
+
   return (
     <div ref={ref}>
+      <JsonLd data={productJsonLd(product, reviews)} />
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "Home", url: absoluteUrl("/") },
+          { name: "Shop", url: absoluteUrl("/shop") },
+          { name: categoryName(product.category), url: collectionUrl(product.category) },
+          { name: product.name, url: productUrl(product.id) },
+        ])}
+      />
       <div className="px-6 lg:px-12 py-6 max-w-[1400px] mx-auto text-xs uppercase tracking-[0.2em] text-muted-foreground">
         <Link to="/shop" className="lk-link">
           Shop
@@ -128,6 +216,24 @@ function ProductPage() {
           <p className="mt-4 font-display text-2xl text-[color:var(--accent)]">
             {ngn(product.price)}
           </p>
+          <div
+            className="mt-4 flex flex-wrap items-center gap-3 text-sm text-muted-foreground"
+            aria-label={`Customer rating ${ratingLabel(reviewSummary)}`}
+          >
+            <span className="flex text-[color:var(--accent)]" aria-hidden="true">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <Star
+                  key={index}
+                  size={17}
+                  strokeWidth={1.8}
+                  className={index < Math.round(reviewSummary.ratingValue) ? "fill-current" : ""}
+                />
+              ))}
+            </span>
+            <a href="#reviews" className="lk-link">
+              {ratingLabel(reviewSummary)}
+            </a>
+          </div>
           <p
             className={`mt-4 inline-flex border px-3 py-1 text-[10px] uppercase tracking-[0.22em] ${
               inStock
@@ -225,6 +331,24 @@ function ProductPage() {
         </div>
       </section>
 
+      <ReviewsSection
+        product={product}
+        reviews={reviews}
+        reviewSummary={reviewSummary}
+        reviewName={reviewName}
+        reviewCity={reviewCity}
+        reviewTitle={reviewTitle}
+        reviewBody={reviewBody}
+        reviewRating={reviewRating}
+        reviewSaved={reviewSaved}
+        onNameChange={setReviewName}
+        onCityChange={setReviewCity}
+        onTitleChange={setReviewTitle}
+        onBodyChange={setReviewBody}
+        onRatingChange={setReviewRating}
+        onSubmit={handleReviewSubmit}
+      />
+
       {related.length > 0 && (
         <section className="px-6 lg:px-12 py-20 bg-[color:var(--cream)]">
           <div className="max-w-[1400px] mx-auto">
@@ -262,5 +386,179 @@ function ProductPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function ReviewsSection({
+  product,
+  reviews,
+  reviewSummary,
+  reviewName,
+  reviewCity,
+  reviewTitle,
+  reviewBody,
+  reviewRating,
+  reviewSaved,
+  onNameChange,
+  onCityChange,
+  onTitleChange,
+  onBodyChange,
+  onRatingChange,
+  onSubmit,
+}: {
+  product: Product;
+  reviews: CustomerReview[];
+  reviewSummary: ReturnType<typeof summarizeReviews>;
+  reviewName: string;
+  reviewCity: string;
+  reviewTitle: string;
+  reviewBody: string;
+  reviewRating: number;
+  reviewSaved: boolean;
+  onNameChange: (value: string) => void;
+  onCityChange: (value: string) => void;
+  onTitleChange: (value: string) => void;
+  onBodyChange: (value: string) => void;
+  onRatingChange: (value: number) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <section
+      id="reviews"
+      className="border-y border-border bg-background px-6 py-18 lg:px-12 lg:py-24"
+    >
+      <div className="mx-auto grid max-w-[1400px] gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
+        <div className="reveal">
+          <p className="eyebrow mb-3">Customer Reviews</p>
+          <h2 className="font-display text-3xl md:text-4xl">Rated by LK customers.</h2>
+          <div className="mt-6 flex items-center gap-4">
+            <div className="font-display text-5xl text-[color:var(--accent)]">
+              {reviewSummary.ratingValue.toFixed(1)}
+            </div>
+            <div>
+              <div className="flex text-[color:var(--accent)]" aria-hidden="true">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <Star
+                    key={index}
+                    size={18}
+                    strokeWidth={1.8}
+                    className={index < Math.round(reviewSummary.ratingValue) ? "fill-current" : ""}
+                  />
+                ))}
+              </div>
+              <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                {reviewSummary.reviewCount} verified-style reviews
+              </p>
+            </div>
+          </div>
+          <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
+            Share fit, fabric, and delivery notes for {reviewProductLine(product)}.
+          </p>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
+          <div className="space-y-4">
+            {reviews.map((review) => (
+              <article key={review.id} className="border border-border bg-[color:var(--cream)] p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="font-display text-xl">{review.title}</h3>
+                    <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                      {review.author} - {review.city}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 text-[color:var(--accent)]" aria-hidden="true">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <Star
+                        key={index}
+                        size={13}
+                        strokeWidth={1.8}
+                        className={index < review.rating ? "fill-current" : ""}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{review.body}</p>
+              </article>
+            ))}
+          </div>
+
+          <form onSubmit={onSubmit} className="border border-border p-5">
+            <p className="eyebrow mb-4">Write a Review</p>
+            <div className="mb-4">
+              <label className="mb-2 block text-xs uppercase tracking-[0.2em]">Rating</label>
+              <div className="flex gap-1">
+                {Array.from({ length: 5 }).map((_, index) => {
+                  const value = index + 1;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => onRatingChange(value)}
+                      className="p-1 text-[color:var(--accent)]"
+                      aria-label={`${value} star rating`}
+                    >
+                      <Star
+                        size={20}
+                        strokeWidth={1.8}
+                        className={value <= reviewRating ? "fill-current" : ""}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <ReviewInput label="Name" value={reviewName} onChange={onNameChange} required />
+            <ReviewInput label="City" value={reviewCity} onChange={onCityChange} />
+            <ReviewInput label="Review title" value={reviewTitle} onChange={onTitleChange} />
+            <label className="mb-4 block">
+              <span className="mb-2 block text-xs uppercase tracking-[0.2em]">Review</span>
+              <textarea
+                value={reviewBody}
+                onChange={(event) => onBodyChange(event.target.value)}
+                required
+                rows={5}
+                className="w-full border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-foreground"
+              />
+            </label>
+            <button
+              type="submit"
+              className="w-full bg-foreground px-5 py-3 text-xs uppercase tracking-[0.22em] text-background transition-colors hover:bg-[color:var(--accent)]"
+            >
+              Submit Review
+            </button>
+            {reviewSaved && (
+              <p className="mt-3 text-xs uppercase tracking-[0.18em] text-[color:var(--accent)]">
+                Review added
+              </p>
+            )}
+          </form>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ReviewInput({
+  label,
+  value,
+  required,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  required?: boolean;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="mb-4 block">
+      <span className="mb-2 block text-xs uppercase tracking-[0.2em]">{label}</span>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        required={required}
+        className="w-full border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-foreground"
+      />
+    </label>
   );
 }

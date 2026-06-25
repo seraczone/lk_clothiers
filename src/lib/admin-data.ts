@@ -149,6 +149,10 @@ type SiteContentRow = {
   value: Partial<ContentState>;
 };
 
+type DeletedProductRow = {
+  id: string;
+};
+
 export const defaultContent: ContentState = {
   general: {
     address: "Block C, Suite 13 & 14,\nH & A Plaza, Wuye,\nAbuja FCT, Nigeria",
@@ -285,8 +289,7 @@ export const defaultContent: ContentState = {
     headlinePrefix: "Ready to wear,",
     headlineAccent: "bespoke",
     headlineSuffix: ".",
-    copy:
-      "LK Clothiers is a fantastic READY TO WEAR & BESPOKE brand that caters to both kids and women with a focus on quality, modesty, simplicity, and customer satisfaction.\n\nWe offer ready-to-wear for customer convenience, making ready-to-wear clothes readily available in store for customers who need clothing without the wait time associated with bespoke pieces.\n\nReady-to-wear collections also offer variety: a wide range of styles, sizes, colours, and designs to choose from, giving customers more options to suit their personal tastes and preferences. Our ready-to-wear pieces include casual, office-friendly, and special-event clothing, as well as kids' pieces for girls and boys.",
+    copy: "LK Clothiers is a fantastic READY TO WEAR & BESPOKE brand that caters to both kids and women with a focus on quality, modesty, simplicity, and customer satisfaction.\n\nWe offer ready-to-wear for customer convenience, making ready-to-wear clothes readily available in store for customers who need clothing without the wait time associated with bespoke pieces.\n\nReady-to-wear collections also offer variety: a wide range of styles, sizes, colours, and designs to choose from, giving customers more options to suit their personal tastes and preferences. Our ready-to-wear pieces include casual, office-friendly, and special-event clothing, as well as kids' pieces for girls and boys.",
     pillars: [
       {
         title: "Our Mission",
@@ -407,9 +410,16 @@ const replacedSeedProductIds = new Set([
   "ivory-gown",
 ]);
 const localStockKey = "lk_stock_overrides_v1";
+const deletedProductsKey = "lk_deleted_products_v1";
 
 export async function listAdminProducts(): Promise<AdminProduct[]> {
-  if (!isSupabaseConfigured || !supabase) return applyLocalStockOverrides(seedProducts);
+  const deletedProductIds = await listDeletedProductIds();
+
+  if (!isSupabaseConfigured || !supabase) {
+    return applyLocalStockOverrides(
+      seedProducts.filter((product) => !deletedProductIds.has(product.id)),
+    );
+  }
 
   const { data, error } = await supabase
     .from("products")
@@ -421,7 +431,10 @@ export async function listAdminProducts(): Promise<AdminProduct[]> {
     (data ?? [])
       .filter((row) => validCategoryKeys.has(row.category))
       .map(productFromRow)
-      .filter((product) => !replacedSeedProductIds.has(product.id)),
+      .filter(
+        (product) => !replacedSeedProductIds.has(product.id) && !deletedProductIds.has(product.id),
+      ),
+    deletedProductIds,
   );
 }
 
@@ -435,6 +448,20 @@ export async function upsertAdminProduct(product: AdminProduct): Promise<AdminPr
     .single();
 
   if (error) throw error;
+  forgetDeletedProductId(product.id);
+
+  const { error: deletedProductError } = await client
+    .from("deleted_products")
+    .delete()
+    .eq("id", product.id);
+
+  if (deletedProductError) {
+    console.info(
+      "Product was saved. Deleted-product marker was cleared locally only:",
+      deletedProductError.message,
+    );
+  }
+
   return productFromRow(data);
 }
 
@@ -443,6 +470,19 @@ export async function deleteAdminProduct(id: string): Promise<void> {
 
   const { error } = await client.from("products").delete().eq("id", id);
   if (error) throw error;
+
+  rememberDeletedProductId(id);
+
+  const { error: deletedProductError } = await client
+    .from("deleted_products")
+    .upsert({ id }, { onConflict: "id" });
+
+  if (deletedProductError) {
+    console.info(
+      "Product was deleted from products. Deleted-product marker was saved locally only:",
+      deletedProductError.message,
+    );
+  }
 }
 
 export async function decrementProductStock(items: Pick<CartItem, "id" | "qty">[]): Promise<void> {
@@ -535,11 +575,19 @@ function productFromRow(row: ProductRow): AdminProduct {
   };
 }
 
-function mergeWithSeedProducts(remoteProducts: AdminProduct[]): AdminProduct[] {
+function mergeWithSeedProducts(
+  remoteProducts: AdminProduct[],
+  deletedProductIds = new Set<string>(),
+): AdminProduct[] {
   const remoteIds = new Set(remoteProducts.map((product) => product.id));
   return [
     ...remoteProducts,
-    ...seedProducts.filter((product) => product.status === "Live" && !remoteIds.has(product.id)),
+    ...seedProducts.filter(
+      (product) =>
+        product.status === "Live" &&
+        !remoteIds.has(product.id) &&
+        !deletedProductIds.has(product.id),
+    ),
   ];
 }
 
@@ -583,6 +631,47 @@ function readLocalStockOverrides(): Record<string, number> | null {
     }, {});
   } catch {
     return null;
+  }
+}
+
+async function listDeletedProductIds(): Promise<Set<string>> {
+  const deletedIds = readLocalDeletedProductIds();
+
+  if (!isSupabaseConfigured || !supabase) return deletedIds;
+
+  const { data, error } = await supabase.from("deleted_products").select("id");
+  if (error) {
+    console.info("Deleted products could not be loaded from Supabase:", error.message);
+    return deletedIds;
+  }
+
+  (data ?? []).forEach((row: DeletedProductRow) => deletedIds.add(row.id));
+  return deletedIds;
+}
+
+function rememberDeletedProductId(id: string) {
+  if (typeof window === "undefined") return;
+  const deletedIds = readLocalDeletedProductIds();
+  deletedIds.add(id);
+  window.localStorage.setItem(deletedProductsKey, JSON.stringify([...deletedIds]));
+}
+
+function forgetDeletedProductId(id: string) {
+  if (typeof window === "undefined") return;
+  const deletedIds = readLocalDeletedProductIds();
+  deletedIds.delete(id);
+  window.localStorage.setItem(deletedProductsKey, JSON.stringify([...deletedIds]));
+}
+
+function readLocalDeletedProductIds(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(deletedProductsKey) ?? "[]");
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.filter((value): value is string => typeof value === "string"));
+  } catch {
+    return new Set();
   }
 }
 

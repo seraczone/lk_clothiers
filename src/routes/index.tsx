@@ -11,6 +11,7 @@ import { genericWhatsAppUrl, WHATSAPP_DISPLAY } from "@/lib/whatsapp";
 import atelierBoardroomWeekend from "@/assets/atelier-boardroom-weekend.mp4";
 import atelierGirlsEid from "@/assets/atelier-girls-eid.mp4";
 import silkFlareVideo from "@/assets/silk-flare-video.mp4";
+import { absoluteUrl, siteDescription } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -18,15 +19,18 @@ export const Route = createFileRoute("/")({
       { title: "LK Clothiers — Modest Fashion, Timeless Elegance" },
       {
         name: "description",
-        content:
-          "Premium ready-to-wear modest fashion for women, girls and boys. Crafted in Abuja, worn worldwide.",
+        content: siteDescription,
       },
       { property: "og:title", content: "LK Clothiers — Modest Fashion, Timeless Elegance" },
       {
         property: "og:description",
-        content: "Premium ready-to-wear modest fashion for women, girls and boys.",
+        content: siteDescription,
       },
+      { property: "og:url", content: absoluteUrl("/") },
+      { name: "twitter:title", content: "LK Clothiers - Modest Fashion, Timeless Elegance" },
+      { name: "twitter:description", content: siteDescription },
     ],
+    links: [{ rel: "canonical", href: absoluteUrl("/") }],
   }),
   component: Index,
 });

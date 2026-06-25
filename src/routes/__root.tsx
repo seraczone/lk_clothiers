@@ -16,6 +16,14 @@ import { Header } from "../components/site/Header";
 import { Footer } from "../components/site/Footer";
 import { WhatsAppFab } from "../components/site/WhatsAppFab";
 import preloaderImage from "../assets/lk-preloader.png";
+import {
+  absoluteUrl,
+  organizationJsonLd,
+  siteDescription,
+  siteName,
+  websiteJsonLd,
+} from "../lib/seo";
+import { JsonLd } from "../components/site/JsonLd";
 
 function NotFoundComponent() {
   return (
@@ -85,14 +93,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "LK Clothiers" },
       {
         name: "description",
-        content: "Premium modest fashion from LK Clothiers, crafted in Abuja.",
+        content: siteDescription,
       },
       { name: "author", content: "LK Clothiers" },
+      { name: "robots", content: "index,follow" },
+      { name: "googlebot", content: "index,follow,max-image-preview:large" },
+      { name: "theme-color", content: "#b66a24" },
+      { property: "og:site_name", content: siteName },
       { property: "og:title", content: "LK Clothiers" },
-      { property: "og:description", content: "Premium modest fashion for women, girls, and boys." },
+      { property: "og:description", content: siteDescription },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { property: "og:url", content: absoluteUrl("/") },
+      { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@lkclothiers" },
+      { name: "twitter:title", content: "LK Clothiers" },
+      { name: "twitter:description", content: siteDescription },
     ],
     links: [
       {
@@ -151,6 +166,8 @@ function RootComponent() {
         <div className="bg-background text-foreground overflow-x-hidden">
           <Header />
           <main className="pt-16">
+            <JsonLd data={organizationJsonLd} />
+            <JsonLd data={websiteJsonLd} />
             {/* Required: nested routes render here. */}
             <Outlet />
           </main>

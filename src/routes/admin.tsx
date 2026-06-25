@@ -39,6 +39,7 @@ import {
 } from "@/lib/admin-data";
 import { ngn, products, type CategoryKey } from "@/lib/catalog";
 import { isSupabaseConfigured, supabase, supabaseConfigError } from "@/lib/supabase";
+import { deliveryMethodLabels, formatOrderDate, listOrders, type SavedOrder } from "@/lib/orders";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin - LK Clothiers" }] }),
@@ -278,13 +279,7 @@ function AdminLoginScreen({
   );
 }
 
-function AdminAuthShell({
-  message,
-  children,
-}: {
-  message?: string;
-  children?: ReactNode;
-}) {
+function AdminAuthShell({ message, children }: { message?: string; children?: ReactNode }) {
   return (
     <div className="-mt-16 flex min-h-screen items-center justify-center bg-[color:var(--cream)] px-4 py-20 text-foreground">
       {children ?? (
@@ -361,9 +356,7 @@ function AdminConsole({
             </nav>
             <div className="mt-auto border-t border-background/10 pt-5 text-[10px] uppercase tracking-[0.2em] text-background/45">
               <p>Owner Workspace</p>
-              <p className="mt-1 normal-case tracking-normal text-background/70">
-                {userEmail}
-              </p>
+              <p className="mt-1 normal-case tracking-normal text-background/70">{userEmail}</p>
               <button
                 onClick={onSignOut}
                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-[6px] border border-background/20 px-3 py-2.5 text-[10px] uppercase tracking-[0.18em] text-background/70 transition-colors hover:border-background/50 hover:text-background"
@@ -1424,20 +1417,52 @@ function EditableNode({
 }
 
 function OrdersTab() {
-  const rows = [
+  const [orders, setOrders] = useState<SavedOrder[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<SavedOrder | null>(null);
+  const rows: Array<{
+    id: string;
+    customer: string;
+    total: number;
+    status: string;
+    delivery?: string;
+    date?: string;
+    order?: SavedOrder;
+  }> = [
+    ...orders.map((order) => ({
+      id: order.id,
+      customer: `${order.customer.firstName} ${order.customer.lastName}`,
+      total: order.total,
+      status: order.status,
+      delivery: deliveryMethodLabels[order.deliveryMethod],
+      date: formatOrderDate(order.createdAt),
+      order,
+    })),
     { id: "LK-10456", customer: "Aisha A.", total: 145000, status: "Processing" },
     { id: "LK-10455", customer: "Halima O.", total: 185000, status: "Pending" },
     { id: "LK-10454", customer: "Fatima B.", total: 220000, status: "Delivered" },
     { id: "LK-10453", customer: "Zainab K.", total: 78000, status: "Cancelled" },
   ];
+
+  useEffect(() => {
+    let mounted = true;
+    listOrders().then((loadedOrders) => {
+      if (mounted) setOrders(loadedOrders);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <Panel title="Orders MVP">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-left text-sm">
+        <table className="w-full min-w-[860px] text-left text-sm">
           <thead className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
             <tr>
               <th className="py-3 font-medium">Order</th>
+              <th className="py-3 font-medium">Date</th>
               <th className="py-3 font-medium">Customer</th>
+              <th className="py-3 font-medium">Delivery</th>
               <th className="py-3 font-medium">Total</th>
               <th className="py-3 font-medium">Status</th>
               <th className="py-3 font-medium">Action</th>
@@ -1447,11 +1472,18 @@ function OrdersTab() {
             {rows.map((row) => (
               <tr key={row.id} className="border-t border-border">
                 <td className="py-4 font-display text-base">{row.id}</td>
+                <td className="py-4">{row.date ?? "Stored order"}</td>
                 <td className="py-4">{row.customer}</td>
+                <td className="py-4">{row.delivery ?? "Not captured"}</td>
                 <td className="py-4 tabular-nums">{ngn(row.total)}</td>
                 <td className="py-4">{row.status}</td>
                 <td className="py-4">
-                  <button className="text-xs uppercase tracking-[0.18em] text-[color:var(--accent)]">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOrder(row.order ?? null)}
+                    disabled={!row.order}
+                    className="text-xs uppercase tracking-[0.18em] text-[color:var(--accent)] disabled:cursor-not-allowed disabled:text-muted-foreground"
+                  >
                     View
                   </button>
                 </td>
@@ -1460,6 +1492,40 @@ function OrdersTab() {
           </tbody>
         </table>
       </div>
+      {selectedOrder && (
+        <div className="mt-6 grid gap-4 rounded-[8px] border border-border bg-[color:var(--cream)] p-5 lg:grid-cols-2">
+          <div>
+            <p className="eyebrow mb-2">Order Details</p>
+            <h3 className="font-display text-2xl">{selectedOrder.id}</h3>
+            <dl className="mt-4 space-y-2 text-sm">
+              <div>
+                <dt className="text-muted-foreground">Delivery method</dt>
+                <dd>{deliveryMethodLabels[selectedOrder.deliveryMethod]}</dd>
+              </div>
+              {selectedOrder.deliveryAddress && (
+                <div>
+                  <dt className="text-muted-foreground">Delivery address</dt>
+                  <dd>{selectedOrder.deliveryAddress}</dd>
+                </div>
+              )}
+              <div>
+                <dt className="text-muted-foreground">Customer email</dt>
+                <dd>{selectedOrder.customer.email}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Phone</dt>
+                <dd>{selectedOrder.customer.phone}</dd>
+              </div>
+            </dl>
+          </div>
+          <div>
+            <p className="eyebrow mb-2">Order Notification</p>
+            <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-[6px] border border-border bg-background p-4 text-xs leading-relaxed text-muted-foreground">
+              {selectedOrder.adminNotificationBody}
+            </pre>
+          </div>
+        </div>
+      )}
     </Panel>
   );
 }

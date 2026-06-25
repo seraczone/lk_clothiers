@@ -6,6 +6,16 @@ import { productById, ngn } from "@/lib/catalog";
 import { decrementProductStock } from "@/lib/admin-data";
 import { checkoutWhatsAppUrl } from "@/lib/whatsapp";
 import { useReveal } from "@/hooks/use-reveal";
+import {
+  buildAdminNotificationBody,
+  buildCustomerEmailBody,
+  createOrderId,
+  deliveryMethodLabels,
+  saveOrder,
+  type CheckoutCustomer,
+  type DeliveryMethod,
+  type SavedOrder,
+} from "@/lib/orders";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout - LK Clothiers" }] }),
@@ -16,20 +26,66 @@ function CheckoutPage() {
   const { items, subtotal, clear } = useCart();
   const navigate = useNavigate();
   const [payment, setPayment] = useState<"paystack" | "flutterwave" | "transfer">("paystack");
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("pickup");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [customer, setCustomer] = useState<CheckoutCustomer>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    city: "",
+    state: "FCT - Abuja",
+  });
+  const [confirmedOrder, setConfirmedOrder] = useState<SavedOrder | null>(null);
   const [done, setDone] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const shipping = subtotal > 100000 ? 0 : 5000;
-  const whatsappCheckout = checkoutWhatsAppUrl(items, subtotal, shipping);
+  const discount = 0;
+  const total = subtotal - discount;
+  const whatsappCheckout = checkoutWhatsAppUrl(
+    items,
+    subtotal,
+    deliveryMethod,
+    deliveryMethod === "home" ? deliveryAddress : undefined,
+    discount,
+  );
   const ref = useReveal<HTMLFormElement>();
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+    if (deliveryMethod === "home" && !deliveryAddress.trim()) {
+      setError("Please enter a delivery address for home delivery.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
+      const orderBase: Omit<SavedOrder, "customerEmailBody" | "adminNotificationBody"> = {
+        id: createOrderId(),
+        createdAt: new Date().toISOString(),
+        customer,
+        items,
+        subtotal,
+        discount,
+        total,
+        paymentMethod: payment,
+        deliveryMethod,
+        deliveryAddress: deliveryMethod === "home" ? deliveryAddress.trim() : undefined,
+        status: "Processing",
+      };
+      const order: SavedOrder = {
+        ...orderBase,
+        customerEmailBody: "",
+        adminNotificationBody: "",
+      };
+      order.customerEmailBody = buildCustomerEmailBody(order);
+      order.adminNotificationBody = buildAdminNotificationBody(order);
+
+      await saveOrder(order);
       await decrementProductStock(items);
+      setConfirmedOrder(order);
       setDone(true);
       clear();
       setTimeout(() => navigate({ to: "/account" }), 2500);
@@ -41,13 +97,15 @@ function CheckoutPage() {
   };
 
   if (done) {
+    const pickup = confirmedOrder?.deliveryMethod === "pickup";
     return (
       <div className="px-6 lg:px-12 py-32 max-w-xl mx-auto text-center lk-fade-up">
         <p className="eyebrow mb-4">Order Confirmed</p>
         <h1 className="font-display text-4xl mb-6">Thank you.</h1>
         <p className="text-sm text-muted-foreground">
-          Your order is being prepared by the atelier. You will receive an email confirmation
-          shortly.
+          {pickup
+            ? "Thank you for your order. We will notify you when your items are ready for collection."
+            : "Thank you for your order. Our team will contact you shortly to confirm delivery arrangements."}
         </p>
       </div>
     );
@@ -72,18 +130,113 @@ function CheckoutPage() {
           <p className="eyebrow mb-3">Step 01</p>
           <h2 className="font-display text-3xl mb-6">Delivery Information</h2>
           <div className="grid sm:grid-cols-2 gap-4">
-            <Input label="First name" />
-            <Input label="Last name" />
-            <Input label="Email" type="email" />
-            <Input label="Phone" type="tel" />
-            <Input label="Address" className="sm:col-span-2" />
-            <Input label="City" />
-            <Input label="State" defaultValue="FCT - Abuja" />
+            <Input
+              label="First name"
+              value={customer.firstName}
+              onChange={(event) => setCustomer({ ...customer, firstName: event.target.value })}
+            />
+            <Input
+              label="Last name"
+              value={customer.lastName}
+              onChange={(event) => setCustomer({ ...customer, lastName: event.target.value })}
+            />
+            <Input
+              label="Email"
+              type="email"
+              value={customer.email}
+              onChange={(event) => setCustomer({ ...customer, email: event.target.value })}
+            />
+            <Input
+              label="Phone"
+              type="tel"
+              value={customer.phone}
+              onChange={(event) => setCustomer({ ...customer, phone: event.target.value })}
+            />
+            <Input
+              label="City"
+              value={customer.city}
+              onChange={(event) => setCustomer({ ...customer, city: event.target.value })}
+            />
+            <Input
+              label="State"
+              value={customer.state}
+              onChange={(event) => setCustomer({ ...customer, state: event.target.value })}
+            />
           </div>
         </div>
 
         <div className="reveal" style={{ "--reveal-x": "-18px" } as CSSProperties}>
           <p className="eyebrow mb-3">Step 02</p>
+          <h2 className="font-display text-3xl mb-6">Delivery Method</h2>
+          <div className="grid gap-3 md:grid-cols-2">
+            {[
+              {
+                key: "pickup",
+                label: "Pick Up at Store",
+                desc: "Collect from LK Clothiers once your pieces are prepared.",
+              },
+              {
+                key: "home",
+                label: "Home Delivery",
+                desc: "Our team will arrange delivery after order confirmation.",
+              },
+            ].map((opt) => (
+              <label
+                key={opt.key}
+                className={`cursor-pointer border p-5 transition-colors ${
+                  deliveryMethod === opt.key
+                    ? "border-foreground bg-[color:var(--cream)]"
+                    : "border-border bg-background"
+                }`}
+              >
+                <span className="flex items-start gap-4">
+                  <input
+                    type="radio"
+                    name="deliveryMethod"
+                    checked={deliveryMethod === opt.key}
+                    onChange={() => setDeliveryMethod(opt.key as DeliveryMethod)}
+                    className="mt-1 accent-[color:var(--accent)]"
+                  />
+                  <span>
+                    <span className="block font-display text-xl">{opt.label}</span>
+                    <span className="mt-2 block text-xs leading-relaxed text-muted-foreground">
+                      {opt.desc}
+                    </span>
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+
+          <div className="mt-5 border border-border bg-background p-5 text-sm leading-relaxed text-muted-foreground">
+            {deliveryMethod === "pickup" ? (
+              <p>
+                Your order will be prepared for collection at our store. We will notify you once it
+                is ready for pickup.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                <label className="block">
+                  <span className="eyebrow mb-2 block">Delivery Address</span>
+                  <textarea
+                    required={deliveryMethod === "home"}
+                    value={deliveryAddress}
+                    onChange={(event) => setDeliveryAddress(event.target.value)}
+                    rows={4}
+                    className="w-full border border-border bg-background px-3 py-3 text-sm text-foreground outline-none transition-colors focus:border-foreground"
+                  />
+                </label>
+                <p>
+                  Delivery charges are determined by location and will be communicated after your
+                  order is confirmed. Our team will contact you to arrange delivery.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="reveal" style={{ "--reveal-x": "-18px" } as CSSProperties}>
+          <p className="eyebrow mb-3">Step 03</p>
           <h2 className="font-display text-3xl mb-6">Payment Method</h2>
           <div className="space-y-3">
             {[
@@ -149,14 +302,21 @@ function CheckoutPage() {
             <dd>{ngn(subtotal)}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">Shipping</dt>
-            <dd>{shipping === 0 ? "Free" : ngn(shipping)}</dd>
+            <dt className="text-muted-foreground">Discount</dt>
+            <dd>{discount > 0 ? `-${ngn(discount)}` : "NGN 0"}</dd>
           </div>
           <div className="flex justify-between font-display text-lg border-t border-border pt-3">
             <dt>Total</dt>
-            <dd>{ngn(subtotal + shipping)}</dd>
+            <dd>{ngn(total)}</dd>
           </div>
         </dl>
+        <div className="mt-5 border-t border-border pt-4 text-xs text-muted-foreground">
+          <p className="uppercase tracking-[0.2em] text-foreground">Delivery</p>
+          <p className="mt-2">{deliveryMethodLabels[deliveryMethod]}</p>
+          {deliveryMethod === "home" && deliveryAddress.trim() && (
+            <p className="mt-1 leading-relaxed">{deliveryAddress}</p>
+          )}
+        </div>
         <a
           href={whatsappCheckout}
           target="_blank"

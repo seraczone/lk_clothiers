@@ -6,6 +6,7 @@ import { ProductCard } from "@/components/site/ProductCard";
 import { useReveal } from "@/hooks/use-reveal";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { useStoreProducts } from "@/hooks/use-store-products";
+import { absoluteUrl } from "@/lib/seo";
 
 export const Route = createFileRoute("/shop")({
   head: () => ({
@@ -16,7 +17,18 @@ export const Route = createFileRoute("/shop")({
         content:
           "Shop premium modest fashion: luxury kaftans, linen, adire, silk, boubou pieces, girls and boys collections.",
       },
+      { name: "robots", content: "index,follow" },
+      { name: "googlebot", content: "index,follow,max-image-preview:large" },
+      { property: "og:title", content: "Shop - LK Clothiers" },
+      {
+        property: "og:description",
+        content:
+          "Shop premium modest fashion: luxury kaftans, linen, adire, silk, boubou pieces, girls and boys collections.",
+      },
+      { property: "og:url", content: absoluteUrl("/shop") },
+      { name: "twitter:title", content: "Shop - LK Clothiers" },
     ],
+    links: [{ rel: "canonical", href: absoluteUrl("/shop") }],
   }),
   component: ShopPage,
 });

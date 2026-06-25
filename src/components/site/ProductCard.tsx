@@ -1,9 +1,11 @@
 import { Link } from "@tanstack/react-router";
+import { Star } from "lucide-react";
 import { useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
 import { ngn, type Product } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 import { productWhatsAppUrl } from "@/lib/whatsapp";
+import { getProductReviewSummary, ratingLabel } from "@/lib/reviews";
 
 export function ProductCard({
   p,
@@ -25,6 +27,7 @@ export function ProductCard({
   const inStock = stock === undefined || stock > 0;
   const defaultSize = p.sizes[0];
   const defaultColor = p.colors[0];
+  const reviewSummary = getProductReviewSummary(p);
   const isInCart = items.some(
     (item) => item.id === p.id && item.size === defaultSize && item.color === defaultColor,
   );
@@ -94,6 +97,22 @@ export function ProductCard({
       </Link>
       <div className="flex items-baseline justify-between">
         <p className="font-display text-lg">{p.name}</p>
+      </div>
+      <div
+        className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground"
+        aria-label={`Customer rating ${ratingLabel(reviewSummary)}`}
+      >
+        <span className="flex text-[color:var(--accent)]" aria-hidden="true">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <Star
+              key={index}
+              size={12}
+              strokeWidth={1.8}
+              className={index < Math.round(reviewSummary.ratingValue) ? "fill-current" : ""}
+            />
+          ))}
+        </span>
+        <span>{ratingLabel(reviewSummary)}</span>
       </div>
       <p className="text-xs text-muted-foreground mt-1">
         {ngn(p.price)} - <span className="capitalize">{p.category}</span>

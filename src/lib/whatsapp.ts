@@ -1,5 +1,6 @@
 import { productById, ngn } from "./catalog";
 import type { CartItem } from "./cart";
+import { deliveryMethodLabels, type DeliveryMethod } from "./orders";
 
 export const WHATSAPP_DISPLAY = "+234 817 195 0268";
 const WHATSAPP_PHONE = "2348171950268";
@@ -25,12 +26,19 @@ export function productWhatsAppUrl(
       "Hi LK Clothiers, I would like to checkout with this piece:",
       `${productName} (${color}, ${size}) x${qty}`,
       `Price: ${ngn(price * qty)}`,
-      "Please confirm availability, delivery fee, and payment details.",
+      "Please confirm availability, payment details, and delivery arrangements.",
     ].join("\n"),
   );
 }
 
-export function checkoutWhatsAppUrl(items: CartItem[], subtotal: number, shipping: number) {
+export function checkoutWhatsAppUrl(
+  items: CartItem[],
+  subtotal: number,
+  deliveryMethod?: DeliveryMethod,
+  deliveryAddress?: string,
+  discount = 0,
+) {
+  const total = subtotal - discount;
   const lines = items
     .map((item) => {
       const product = productById(item.id);
@@ -40,14 +48,18 @@ export function checkoutWhatsAppUrl(items: CartItem[], subtotal: number, shippin
     .filter(Boolean)
     .join("\n");
 
-  return whatsappUrl(
-    [
-      "Hi LK Clothiers, I would like to checkout with this order:",
-      lines,
-      `Subtotal: ${ngn(subtotal)}`,
-      `Shipping: ${shipping === 0 ? "Free" : ngn(shipping)}`,
-      `Total: ${ngn(subtotal + shipping)}`,
-      "Please confirm availability and payment details.",
-    ].join("\n"),
-  );
+  const message = [
+    "Hi LK Clothiers, I would like to checkout with this order:",
+    lines,
+    `Subtotal: ${ngn(subtotal)}`,
+    discount > 0 ? `Discount: -${ngn(discount)}` : "Discount: NGN 0",
+    `Final order total: ${ngn(total)}`,
+    deliveryMethod ? `Delivery method: ${deliveryMethodLabels[deliveryMethod]}` : "",
+    deliveryAddress ? `Delivery address: ${deliveryAddress}` : "",
+    "Please confirm availability, payment details, and any delivery arrangements.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return whatsappUrl(message);
 }

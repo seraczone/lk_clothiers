@@ -386,6 +386,42 @@ async function setupDatabase(urls) {
         updated_at timestamptz not null default now()
       );
 
+      create table if not exists public.deleted_products (
+        id text primary key,
+        created_at timestamptz not null default now()
+      );
+
+      create table if not exists public.orders (
+        id text primary key,
+        created_at timestamptz not null default now(),
+        customer jsonb not null,
+        items jsonb not null,
+        subtotal integer not null check (subtotal >= 0),
+        discount integer not null default 0 check (discount >= 0),
+        total integer not null check (total >= 0),
+        payment_method text not null check (payment_method in ('paystack', 'flutterwave', 'transfer')),
+        delivery_method text not null check (delivery_method in ('pickup', 'home')),
+        delivery_address text,
+        status text not null default 'Processing' check (status in ('Pending', 'Processing', 'Delivered', 'Cancelled')),
+        customer_email_body text not null default '',
+        admin_notification_body text not null default '',
+        updated_at timestamptz not null default now(),
+        check (delivery_method = 'pickup' or nullif(trim(delivery_address), '') is not null)
+      );
+
+      alter table public.orders add column if not exists customer jsonb not null default '{}'::jsonb;
+      alter table public.orders add column if not exists items jsonb not null default '[]'::jsonb;
+      alter table public.orders add column if not exists subtotal integer not null default 0 check (subtotal >= 0);
+      alter table public.orders add column if not exists discount integer not null default 0 check (discount >= 0);
+      alter table public.orders add column if not exists total integer not null default 0 check (total >= 0);
+      alter table public.orders add column if not exists payment_method text not null default 'paystack';
+      alter table public.orders add column if not exists delivery_method text not null default 'pickup';
+      alter table public.orders add column if not exists delivery_address text;
+      alter table public.orders add column if not exists status text not null default 'Processing';
+      alter table public.orders add column if not exists customer_email_body text not null default '';
+      alter table public.orders add column if not exists admin_notification_body text not null default '';
+      alter table public.orders add column if not exists updated_at timestamptz not null default now();
+
       create or replace function public.set_updated_at()
       returns trigger
       language plpgsql
@@ -411,9 +447,16 @@ async function setupDatabase(urls) {
       before update on public.site_content
       for each row execute function public.set_updated_at();
 
+      drop trigger if exists orders_set_updated_at on public.orders;
+      create trigger orders_set_updated_at
+      before update on public.orders
+      for each row execute function public.set_updated_at();
+
       alter table public.categories enable row level security;
       alter table public.products enable row level security;
       alter table public.site_content enable row level security;
+      alter table public.deleted_products enable row level security;
+      alter table public.orders enable row level security;
     `);
 
     await upsertPolicies(client);
@@ -528,6 +571,32 @@ async function upsertPolicies(client) {
     ["categories_select_public", "categories", "select", "using (true)"],
     ["products_select_public", "products", "select", "using (true)"],
     ["site_content_select_public", "site_content", "select", "using (true)"],
+    [
+      "deleted_products_select_public",
+      "deleted_products",
+      "select",
+      "to anon, authenticated using (true)",
+    ],
+    [
+      "deleted_products_insert_admin",
+      "deleted_products",
+      "insert",
+      "to authenticated with check (true)",
+    ],
+    [
+      "deleted_products_update_admin",
+      "deleted_products",
+      "update",
+      "to authenticated using (true) with check (true)",
+    ],
+    [
+      "deleted_products_delete_admin",
+      "deleted_products",
+      "delete",
+      "to authenticated using (true)",
+    ],
+    ["orders_insert_public", "orders", "insert", "to anon, authenticated with check (true)"],
+    ["orders_select_admin", "orders", "select", "to authenticated using (true)"],
     ["products_insert_mvp", "products", "insert", "with check (true)"],
     ["products_update_mvp", "products", "update", "using (true) with check (true)"],
     ["products_delete_mvp", "products", "delete", "using (true)"],

@@ -12,7 +12,6 @@ export const Route = createFileRoute("/cart")({
 
 function CartPage() {
   const { items, remove, setQty, subtotal, count } = useCart();
-  const shipping = subtotal > 0 ? (subtotal > 100000 ? 0 : 5000) : 0;
   const ref = useReveal<HTMLDivElement>();
 
   return (
@@ -103,16 +102,16 @@ function CartPage() {
                 <dd className="tabular-nums">{ngn(subtotal)}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Shipping</dt>
-                <dd className="tabular-nums">{shipping === 0 ? "Free" : ngn(shipping)}</dd>
+                <dt className="text-muted-foreground">Discount</dt>
+                <dd className="tabular-nums">NGN 0</dd>
               </div>
               <div className="border-t border-border pt-3 flex justify-between font-display text-lg">
                 <dt>Total</dt>
-                <dd className="tabular-nums">{ngn(subtotal + shipping)}</dd>
+                <dd className="tabular-nums">{ngn(subtotal)}</dd>
               </div>
             </dl>
             <a
-              href={checkoutWhatsAppUrl(items, subtotal, shipping)}
+              href={checkoutWhatsAppUrl(items, subtotal)}
               target="_blank"
               rel="noreferrer"
               className="mt-8 block text-center bg-[color:var(--accent)] text-white px-7 py-4 text-xs uppercase tracking-[0.25em] hover:bg-foreground transition-colors"

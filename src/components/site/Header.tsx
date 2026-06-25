@@ -8,7 +8,7 @@ const primaryLinks = [
   { to: "/", label: "Home", exact: true },
   { to: "/shop", label: "Shop" },
   { to: "/about", label: "Atelier" },
-  { to: "/contact", label: "Visit" },
+  { to: "/contact", label: "Contact" },
   { to: "/faq", label: "FAQs" },
 ] as const;
 
