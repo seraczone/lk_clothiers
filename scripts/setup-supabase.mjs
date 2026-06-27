@@ -30,16 +30,10 @@ const assetMap = {
   "amara-print-dress-primary.png": "amara-print-dress-primary.png",
   "amara-print-dress-side.png": "amara-print-dress-side.png",
   "boubou-embellished-colors.jpeg": "boubou-embellished-colors.jpeg",
+  "boys-blue-kaftan-hero.jpeg": "boys-blue-kaftan-hero.jpeg",
   "boys-kaftan-sage-tan.jpeg": "boys-kaftan-sage-tan.jpeg",
   "boys-kaftan-white.jpeg": "boys-kaftan-white.jpeg",
-  "cat-boys.jpg": "cat-boys.jpg",
   "girl-dresses.png": "girl-dresses.png",
-  "cat-shirts.jpg": "cat-shirts.jpg",
-  "cat-twopc.jpg": "cat-twopc.jpg",
-  "cat-boubou.jpg": "cat-boubou.jpg",
-  "p1.jpg": "p1.jpg",
-  "p3.jpg": "p3.jpg",
-  "p4.jpg": "p4.jpg",
   "hero-collection.png": "hero-collection.png",
   "shirt-dress-blue-front-back.jpeg": "shirt-dress-blue-front-back.jpeg",
   "shirt-dress-blue-hanger.jpeg": "shirt-dress-blue-hanger.jpeg",
@@ -64,8 +58,13 @@ const assetMap = {
 
 const categories = [
   { key: "girls", name: "Girls", image: "girl-dresses.png", tagline: "Mini LK" },
-  { key: "boys", name: "Boys", image: "boys-kaftan-sage-tan.jpeg", tagline: "Little gentlemen" },
-  { key: "casual", name: "Casual", image: "cat-shirts.jpg", tagline: "Legacy everyday ease" },
+  { key: "boys", name: "Boys", image: "boys-blue-kaftan-hero.jpeg", tagline: "Little gentlemen" },
+  {
+    key: "shirt",
+    name: "Shirt",
+    image: "linen-long-shirt-mint.jpeg",
+    tagline: "Tailored everyday shirts",
+  },
   {
     key: "shirt-dress",
     name: "Shirt Dress",
@@ -121,78 +120,33 @@ const products = [
     "Live",
   ],
   [
-    "kai-twopc",
-    "Kai Two-Piece",
-    52000,
+    "boys-kaftan-sage-tan",
+    "Boys Kaftan",
+    55000,
     "boys",
-    "cat-boys.jpg",
-    null,
+    "boys-kaftan-sage-tan.jpeg",
+    ["boys-kaftan-sage-tan.jpeg", "boys-kaftan-white.jpeg"],
     ["2-3y", "4-5y", "6-7y", "8-9y", "10-11y"],
-    ["Coffee", "Ivory"],
-    "A tailored two-piece set for boys, cut from breathable cotton.",
-    null,
+    ["Sage", "Tan"],
+    "A neatly finished boys kaftan with embroidered detailing and a polished modest fit.",
+    "New",
     false,
-    37,
+    30,
     "Live",
   ],
   [
-    "omar-kaftan",
-    "Omar Mini Kaftan",
-    48000,
+    "boys-kaftan-white",
+    "Boys Kaftan",
+    55000,
     "boys",
     "boys-kaftan-white.jpeg",
-    null,
+    ["boys-kaftan-white.jpeg", "boys-kaftan-sage-tan.jpeg"],
     ["2-3y", "4-5y", "6-7y", "8-9y", "10-11y"],
-    ["Ivory"],
-    "A miniature take on our signature kaftan.",
+    ["White", "Sage"],
+    "A neatly finished boys kaftan with embroidered detailing and a polished modest fit.",
     null,
     false,
-    21,
-    "Live",
-  ],
-  [
-    "ivory-shirt",
-    "Ivory Atelier Shirt",
-    62000,
-    "casual",
-    "cat-shirts.jpg",
-    ["cat-shirts.jpg", "p1.jpg"],
-    ["XS", "S", "M", "L", "XL"],
-    ["Ivory", "Sand"],
-    "A relaxed everyday shirt with a slightly oversized fit.",
-    null,
-    true,
-    28,
-    "Live",
-  ],
-  [
-    "orange-set",
-    "Burnt Orange Two-Piece",
-    98000,
-    "casual",
-    "p3.jpg",
-    null,
-    ["XS", "S", "M", "L", "XL"],
-    ["Burnt Orange"],
-    "A confident two-piece in our signature burnt orange.",
-    null,
-    false,
-    35,
-    "Draft",
-  ],
-  [
-    "coffee-set",
-    "Coffee Co-ord Set",
-    105000,
-    "casual",
-    "cat-twopc.jpg",
-    null,
-    ["XS", "S", "M", "L", "XL"],
-    ["Coffee"],
-    "A relaxed co-ord set with wide trousers and a tunic top.",
-    null,
-    false,
-    19,
+    30,
     "Live",
   ],
   [
@@ -365,6 +319,7 @@ async function setupDatabase(urls) {
         id text primary key,
         name text not null,
         price integer not null check (price >= 0),
+        use_variants boolean not null default false,
         category text not null references public.categories(key),
         image_url text not null,
         gallery_urls text[],
@@ -378,6 +333,26 @@ async function setupDatabase(urls) {
         created_at timestamptz not null default now(),
         updated_at timestamptz not null default now()
       );
+
+      alter table public.products add column if not exists use_variants boolean not null default false;
+
+      create table if not exists public.product_variants (
+        id text primary key,
+        product_id text not null references public.products(id) on delete cascade,
+        variant_type text not null,
+        variant_value text not null,
+        price integer not null check (price >= 0),
+        stock integer not null default 0 check (stock >= 0),
+        sku text,
+        position integer not null default 0,
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now()
+      );
+
+      create index if not exists product_variants_product_id_idx
+        on public.product_variants(product_id);
+      create index if not exists product_variants_product_position_idx
+        on public.product_variants(product_id, position);
 
       create table if not exists public.site_content (
         key text primary key,
@@ -442,6 +417,11 @@ async function setupDatabase(urls) {
       before update on public.products
       for each row execute function public.set_updated_at();
 
+      drop trigger if exists product_variants_set_updated_at on public.product_variants;
+      create trigger product_variants_set_updated_at
+      before update on public.product_variants
+      for each row execute function public.set_updated_at();
+
       drop trigger if exists site_content_set_updated_at on public.site_content;
       create trigger site_content_set_updated_at
       before update on public.site_content
@@ -454,6 +434,7 @@ async function setupDatabase(urls) {
 
       alter table public.categories enable row level security;
       alter table public.products enable row level security;
+      alter table public.product_variants enable row level security;
       alter table public.site_content enable row level security;
       alter table public.deleted_products enable row level security;
       alter table public.orders enable row level security;
@@ -535,11 +516,22 @@ async function setupDatabase(urls) {
       `
         delete from public.products
         where category = 'glam'
-          or id in ('zara-mini', 'lila-dress', 'noir-boubou', 'gold-kaftan', 'ivory-gown')
+          or id in (
+            'zara-mini',
+            'lila-dress',
+            'noir-boubou',
+            'gold-kaftan',
+            'ivory-gown',
+            'kai-twopc',
+            'omar-kaftan',
+            'ivory-shirt',
+            'orange-set',
+            'coffee-set'
+          )
       `,
     );
-    await client.query("delete from public.categories where key = 'glam'");
-    await removeGeneratedGirlsAssets();
+    await client.query("delete from public.categories where key in ('glam', 'casual')");
+    await removeDeletedGeneratedAssets();
 
     await client.query(
       `
@@ -554,22 +546,59 @@ async function setupDatabase(urls) {
   }
 }
 
-async function removeGeneratedGirlsAssets() {
-  const staleObjects = ["girls-purple-dress.jpeg", "girls-green-dress.jpeg"];
+async function removeDeletedGeneratedAssets() {
+  const staleObjects = [
+    "girls-purple-dress.jpeg",
+    "girls-green-dress.jpeg",
+    "cat-boys.jpg",
+    "cat-boubou.jpg",
+    "cat-shirts.jpg",
+    "cat-twopc.jpg",
+    "p1.jpg",
+    "p3.jpg",
+    "p4.jpg",
+  ];
   const response = await storageFetch("/object/product-images", {
     method: "DELETE",
     body: JSON.stringify({ prefixes: staleObjects }),
   });
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`Unable to remove generated girls assets: ${body}`);
+    throw new Error(`Unable to remove deleted generated assets: ${body}`);
   }
 }
 
 async function upsertPolicies(client) {
   const policies = [
     ["categories_select_public", "categories", "select", "using (true)"],
+    ["categories_insert_admin", "categories", "insert", "to authenticated with check (true)"],
+    [
+      "categories_update_admin",
+      "categories",
+      "update",
+      "to authenticated using (true) with check (true)",
+    ],
+    ["categories_delete_admin", "categories", "delete", "to authenticated using (true)"],
     ["products_select_public", "products", "select", "using (true)"],
+    ["product_variants_select_public", "product_variants", "select", "using (true)"],
+    [
+      "product_variants_insert_admin",
+      "product_variants",
+      "insert",
+      "to authenticated with check (true)",
+    ],
+    [
+      "product_variants_update_admin",
+      "product_variants",
+      "update",
+      "to authenticated using (true) with check (true)",
+    ],
+    [
+      "product_variants_delete_admin",
+      "product_variants",
+      "delete",
+      "to authenticated using (true)",
+    ],
     ["site_content_select_public", "site_content", "select", "using (true)"],
     [
       "deleted_products_select_public",

@@ -1,13 +1,26 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { productById } from "./catalog";
 
-export type CartItem = { id: string; size: string; color: string; qty: number };
+export type CartItem = {
+  id: string;
+  size: string;
+  color: string;
+  qty: number;
+  name?: string;
+  image?: string;
+  price?: number;
+  variantId?: string;
+  variantType?: string;
+  variantValue?: string;
+  variantSku?: string;
+  variantPrice?: number;
+};
 
 type CartCtx = {
   items: CartItem[];
   add: (item: CartItem) => void;
-  remove: (id: string, size: string, color: string) => void;
-  setQty: (id: string, size: string, color: string, qty: number) => void;
+  remove: (id: string, size: string, color: string, variantId?: string) => void;
+  setQty: (id: string, size: string, color: string, qty: number, variantId?: string) => void;
   clear: () => void;
   count: number;
   subtotal: number;
@@ -38,10 +51,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<CartCtx>(() => {
     const sameKey = (a: CartItem, b: CartItem) =>
-      a.id === b.id && a.size === b.size && a.color === b.color;
+      a.id === b.id &&
+      a.size === b.size &&
+      a.color === b.color &&
+      (a.variantId ?? "") === (b.variantId ?? "");
     const subtotal = items.reduce((s, it) => {
       const p = productById(it.id);
-      return s + (p ? p.price * it.qty : 0);
+      const unitPrice = it.variantPrice ?? it.price ?? p?.price ?? 0;
+      return s + unitPrice * it.qty;
     }, 0);
     const count = items.reduce((s, it) => s + it.qty, 0);
     return {
@@ -58,12 +75,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
           }
           return [...prev, item];
         }),
-      remove: (id, size, color) =>
-        setItems((prev) => prev.filter((p) => !sameKey(p, { id, size, color, qty: 0 }))),
-      setQty: (id, size, color, qty) =>
+      remove: (id, size, color, variantId) =>
+        setItems((prev) =>
+          prev.filter((p) => !sameKey(p, { id, size, color, variantId, qty: 0 })),
+        ),
+      setQty: (id, size, color, qty, variantId) =>
         setItems((prev) => {
-          if (qty <= 0) return prev.filter((p) => !sameKey(p, { id, size, color, qty: 0 }));
-          return prev.map((p) => (sameKey(p, { id, size, color, qty: 0 }) ? { ...p, qty } : p));
+          if (qty <= 0)
+            return prev.filter((p) => !sameKey(p, { id, size, color, variantId, qty: 0 }));
+          return prev.map((p) =>
+            sameKey(p, { id, size, color, variantId, qty: 0 }) ? { ...p, qty } : p,
+          );
         }),
       clear: () => setItems([]),
     };

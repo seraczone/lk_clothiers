@@ -1,4 +1,11 @@
-import { categories, products, type CategoryKey, type Product } from "@/lib/catalog";
+import {
+  categories,
+  products,
+  type Category,
+  type CategoryKey,
+  type Product,
+  type ProductVariant,
+} from "@/lib/catalog";
 import type { CartItem } from "@/lib/cart";
 import { isSupabaseConfigured, supabase, supabaseConfigError } from "@/lib/supabase";
 
@@ -7,6 +14,8 @@ export type AdminProduct = Product & {
   stock: number;
   status: ProductStatus;
 };
+
+export type AdminCategory = Category;
 
 export type ContentState = {
   general: {
@@ -132,6 +141,7 @@ type ProductRow = {
   id: string;
   name: string;
   price: number;
+  use_variants?: boolean | null;
   category: CategoryKey;
   image_url: string;
   gallery_urls: string[] | null;
@@ -142,6 +152,24 @@ type ProductRow = {
   best_seller: boolean;
   stock: number;
   status: ProductStatus;
+};
+
+type ProductVariantRow = {
+  id: string;
+  product_id: string;
+  variant_type: string;
+  variant_value: string;
+  price: number;
+  stock: number;
+  sku: string | null;
+  position: number | null;
+};
+
+type CategoryRow = {
+  key: string;
+  name: string;
+  image_url: string;
+  tagline: string;
 };
 
 type SiteContentRow = {
@@ -382,6 +410,8 @@ export const defaultContent: ContentState = {
 
 export const seedProducts: AdminProduct[] = products.map((product, index) => ({
   ...product,
+  useVariants: false,
+  variants: [],
   stock: 18 + ((index * 7) % 23),
   status:
     product.category === "adire" ||
@@ -395,7 +425,6 @@ export const seedProducts: AdminProduct[] = products.map((product, index) => ({
 }));
 
 export const adminCategories = categories;
-const validCategoryKeys = new Set(categories.map((category) => category.key));
 const replacedSeedProductIds = new Set([
   "zara-mini",
   "lila-dress",
@@ -414,6 +443,8 @@ const deletedProductsKey = "lk_deleted_products_v1";
 
 export async function listAdminProducts(): Promise<AdminProduct[]> {
   const deletedProductIds = await listDeletedProductIds();
+  const loadedCategories = await listAdminCategories();
+  const validCategoryKeys = new Set(loadedCategories.map((category) => category.key));
 
   if (!isSupabaseConfigured || !supabase) {
     return applyLocalStockOverrides(
@@ -427,10 +458,12 @@ export async function listAdminProducts(): Promise<AdminProduct[]> {
     .order("created_at", { ascending: false });
 
   if (error) throw error;
+  const productIds = (data ?? []).map((row) => String(row.id));
+  const variantsByProductId = await listVariantsByProductId(productIds);
   return mergeWithSeedProducts(
     (data ?? [])
       .filter((row) => validCategoryKeys.has(row.category))
-      .map(productFromRow)
+      .map((row) => productFromRow(row, variantsByProductId.get(row.id) ?? []))
       .filter(
         (product) => !replacedSeedProductIds.has(product.id) && !deletedProductIds.has(product.id),
       ),
@@ -448,6 +481,7 @@ export async function upsertAdminProduct(product: AdminProduct): Promise<AdminPr
     .single();
 
   if (error) throw error;
+  await replaceProductVariants(product.id, product.variants ?? []);
   forgetDeletedProductId(product.id);
 
   const { error: deletedProductError } = await client
@@ -462,7 +496,7 @@ export async function upsertAdminProduct(product: AdminProduct): Promise<AdminPr
     );
   }
 
-  return productFromRow(data);
+  return productFromRow(data, product.variants ?? []);
 }
 
 export async function deleteAdminProduct(id: string): Promise<void> {
@@ -485,9 +519,49 @@ export async function deleteAdminProduct(id: string): Promise<void> {
   }
 }
 
-export async function decrementProductStock(items: Pick<CartItem, "id" | "qty">[]): Promise<void> {
+export async function listAdminCategories(): Promise<AdminCategory[]> {
+  if (!isSupabaseConfigured || !supabase) return adminCategories;
+
+  const { data, error } = await supabase
+    .from("categories")
+    .select("key,name,image_url,tagline")
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.info("Categories could not be loaded from Supabase:", error.message);
+    return adminCategories;
+  }
+
+  const remoteCategories = (data ?? []).map(categoryFromRow);
+  const remoteKeys = new Set(remoteCategories.map((category) => category.key));
+  return [
+    ...remoteCategories,
+    ...adminCategories.filter((category) => !remoteKeys.has(category.key)),
+  ];
+}
+
+export async function upsertAdminCategory(category: AdminCategory): Promise<AdminCategory> {
+  const client = requireSupabase();
+  const { data, error } = await client
+    .from("categories")
+    .upsert(categoryToRow(category), { onConflict: "key" })
+    .select("key,name,image_url,tagline")
+    .single();
+
+  if (error) throw error;
+  return categoryFromRow(data);
+}
+
+export async function deleteAdminCategory(key: string): Promise<void> {
+  const client = requireSupabase();
+  const { error } = await client.from("categories").delete().eq("key", key);
+  if (error) throw error;
+}
+
+export async function decrementProductStock(items: Pick<CartItem, "id" | "qty" | "variantId">[]): Promise<void> {
   const quantities = items.reduce<Record<string, number>>((total, item) => {
-    total[item.id] = (total[item.id] ?? 0) + item.qty;
+    const key = item.variantId ? `${item.id}::${item.variantId}` : item.id;
+    total[key] = (total[key] ?? 0) + item.qty;
     return total;
   }, {});
 
@@ -498,9 +572,21 @@ export async function decrementProductStock(items: Pick<CartItem, "id" | "qty">[
 
   const currentProducts = await listAdminProducts();
   await Promise.all(
-    Object.entries(quantities).map(async ([id, purchasedQty]) => {
+    Object.entries(quantities).map(async ([key, purchasedQty]) => {
+      const [id, variantId] = key.split("::");
       const product = currentProducts.find((item) => item.id === id);
       if (!product) return;
+      if (variantId) {
+        await upsertAdminProduct({
+          ...product,
+          variants: (product.variants ?? []).map((variant) =>
+            variant.id === variantId
+              ? { ...variant, stock: Math.max(0, variant.stock - purchasedQty) }
+              : variant,
+          ),
+        });
+        return;
+      }
       await upsertAdminProduct({
         ...product,
         stock: Math.max(0, product.stock - purchasedQty),
@@ -557,11 +643,13 @@ export function normalizeSiteContent(value: unknown): ContentState {
   return deepMerge(defaultContent, isPlainObject(value) ? value : {}) as ContentState;
 }
 
-function productFromRow(row: ProductRow): AdminProduct {
+function productFromRow(row: ProductRow, variants: ProductVariant[] = []): AdminProduct {
   return {
     id: row.id,
     name: row.name,
     price: row.price,
+    useVariants: Boolean(row.use_variants && variants.length > 0),
+    variants,
     category: row.category,
     image: row.image_url,
     gallery: row.gallery_urls ?? undefined,
@@ -572,6 +660,15 @@ function productFromRow(row: ProductRow): AdminProduct {
     bestSeller: row.best_seller,
     stock: row.stock,
     status: row.status,
+  };
+}
+
+function categoryFromRow(row: CategoryRow): AdminCategory {
+  return {
+    key: row.key,
+    name: row.name,
+    image: row.image_url,
+    tagline: row.tagline,
   };
 }
 
@@ -607,7 +704,8 @@ function decrementLocalStock(quantities: Record<string, number>) {
   const currentProducts = applyLocalStockOverrides(seedProducts);
   const overrides = readLocalStockOverrides() ?? {};
 
-  Object.entries(quantities).forEach(([id, purchasedQty]) => {
+  Object.entries(quantities).forEach(([key, purchasedQty]) => {
+    const [id] = key.split("::");
     const product = currentProducts.find((item) => item.id === id);
     if (!product) return;
     overrides[id] = Math.max(0, product.stock - purchasedQty);
@@ -680,6 +778,7 @@ function productToRow(product: AdminProduct): ProductRow {
     id: product.id,
     name: product.name,
     price: product.price,
+    use_variants: Boolean(product.useVariants),
     category: product.category,
     image_url: product.image,
     gallery_urls: product.gallery ?? null,
@@ -690,6 +789,81 @@ function productToRow(product: AdminProduct): ProductRow {
     best_seller: Boolean(product.bestSeller),
     stock: product.stock,
     status: product.status,
+  };
+}
+
+function categoryToRow(category: AdminCategory): CategoryRow {
+  return {
+    key: category.key,
+    name: category.name,
+    image_url: category.image,
+    tagline: category.tagline,
+  };
+}
+
+async function listVariantsByProductId(productIds: string[]) {
+  const variantsByProductId = new Map<string, ProductVariant[]>();
+  if (!isSupabaseConfigured || !supabase || productIds.length === 0) return variantsByProductId;
+
+  const { data, error } = await supabase
+    .from("product_variants")
+    .select("id,product_id,variant_type,variant_value,price,stock,sku,position")
+    .in("product_id", productIds)
+    .order("position", { ascending: true });
+
+  if (error) {
+    console.info("Product variants could not be loaded from Supabase:", error.message);
+    return variantsByProductId;
+  }
+
+  (data ?? []).forEach((row: ProductVariantRow) => {
+    const variant = variantFromRow(row);
+    const current = variantsByProductId.get(variant.productId) ?? [];
+    variantsByProductId.set(variant.productId, [...current, variant]);
+  });
+
+  return variantsByProductId;
+}
+
+async function replaceProductVariants(productId: string, variants: ProductVariant[]) {
+  const client = requireSupabase();
+  const { error: deleteError } = await client
+    .from("product_variants")
+    .delete()
+    .eq("product_id", productId);
+
+  if (deleteError) throw deleteError;
+  if (variants.length === 0) return;
+
+  const { error } = await client.from("product_variants").insert(
+    variants.map((variant, index) => variantToRow({ ...variant, productId, position: index })),
+  );
+  if (error) throw error;
+}
+
+function variantFromRow(row: ProductVariantRow): ProductVariant {
+  return {
+    id: row.id,
+    productId: row.product_id,
+    variantType: row.variant_type,
+    variantValue: row.variant_value,
+    price: row.price,
+    stock: row.stock,
+    sku: row.sku ?? undefined,
+    position: row.position ?? 0,
+  };
+}
+
+function variantToRow(variant: ProductVariant): ProductVariantRow {
+  return {
+    id: variant.id,
+    product_id: variant.productId,
+    variant_type: variant.variantType,
+    variant_value: variant.variantValue,
+    price: variant.price,
+    stock: variant.stock,
+    sku: variant.sku ?? null,
+    position: variant.position,
   };
 }
 

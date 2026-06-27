@@ -281,17 +281,25 @@ function CheckoutPage() {
         <ul className="space-y-3 mb-6">
           {items.map((it) => {
             const p = productById(it.id);
-            if (!p) return null;
+            const name = it.name ?? p?.name;
+            const image = it.image ?? p?.image;
+            const unitPrice = it.variantPrice ?? it.price ?? p?.price ?? 0;
+            if (!name || !image) return null;
+            const variantLabel =
+              it.variantType && it.variantValue ? `${it.variantType}: ${it.variantValue}` : "";
             return (
-              <li key={`${it.id}-${it.size}-${it.color}`} className="flex gap-3 text-sm">
-                <img src={p.image} alt="" className="w-14 h-16 object-cover" />
+              <li
+                key={`${it.id}-${it.size}-${it.color}-${it.variantId ?? ""}`}
+                className="flex gap-3 text-sm"
+              >
+                <img src={image} alt="" className="w-14 h-16 object-cover" />
                 <div className="flex-1">
-                  <p className="font-display">{p.name}</p>
+                  <p className="font-display">{name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {it.color} - {it.size} - x{it.qty}
+                    {[it.color, it.size, variantLabel, `x${it.qty}`].filter(Boolean).join(" - ")}
                   </p>
                 </div>
-                <p className="tabular-nums">{ngn(p.price * it.qty)}</p>
+                <p className="tabular-nums">{ngn(unitPrice * it.qty)}</p>
               </li>
             );
           })}
@@ -320,7 +328,12 @@ function CheckoutPage() {
         <a
           href={whatsappCheckout}
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
+          onClick={(event) => {
+            event.preventDefault();
+            const popup = window.open(whatsappCheckout, "_blank", "noopener,noreferrer");
+            if (!popup) window.location.href = whatsappCheckout;
+          }}
           className="mt-8 block w-full text-center bg-[color:var(--accent)] text-white px-7 py-4 text-xs uppercase tracking-[0.25em] hover:bg-foreground transition-colors"
         >
           Checkout on WhatsApp

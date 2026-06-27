@@ -164,14 +164,23 @@ const categoryFallbackReviews: Record<CategoryKey, Omit<CustomerReview, "id" | "
 export const reviewStorageKey = "lk_customer_reviews_v1";
 
 export function categoryName(category: CategoryKey) {
-  return categoryLabels[category];
+  return categoryLabels[category] ?? category.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 export function getSeedReviews(product: Product): CustomerReview[] {
   const direct = reviewSeeds.filter((review) => review.productId === product.id);
   if (direct.length > 0) return direct;
 
-  const fallback = categoryFallbackReviews[product.category];
+  const fallback =
+    categoryFallbackReviews[product.category] ??
+    ({
+      author: "LK Customer",
+      city: "Nigeria",
+      rating: 5,
+      title: "Beautiful piece",
+      body: "The finishing is neat and the fit feels considered.",
+      datePublished: "2026-06-01",
+    } satisfies Omit<CustomerReview, "id" | "productId">);
   return [
     {
       ...fallback,

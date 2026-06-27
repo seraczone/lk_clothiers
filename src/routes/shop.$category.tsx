@@ -1,14 +1,15 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import type { CSSProperties } from "react";
-import { categories, type CategoryKey } from "@/lib/catalog";
+import { categories as seedCategories, type CategoryKey } from "@/lib/catalog";
 import { ProductCard } from "@/components/site/ProductCard";
 import { useReveal } from "@/hooks/use-reveal";
 import { useStoreProducts } from "@/hooks/use-store-products";
+import { useStoreCategories } from "@/hooks/use-store-categories";
 import { collectionUrl } from "@/lib/seo";
 
 export const Route = createFileRoute("/shop/$category")({
   head: ({ params }) => {
-    const cat = categories.find((c) => c.key === params.category);
+    const cat = seedCategories.find((c) => c.key === params.category);
     const name = cat?.name ?? "Collection";
     return {
       meta: [
@@ -25,16 +26,13 @@ export const Route = createFileRoute("/shop/$category")({
       links: [{ rel: "canonical", href: collectionUrl(params.category) }],
     };
   },
-  loader: ({ params }) => {
-    const cat = categories.find((c) => c.key === params.category);
-    if (!cat) throw notFound();
-    return cat;
-  },
+  loader: ({ params }) => params.category,
   component: CategoryPage,
 });
 
 function CategoryPage() {
-  const { category } = Route.useParams();
+  const category = Route.useLoaderData();
+  const categories = useStoreCategories();
   const cat = categories.find((item) => item.key === category);
   const { products } = useStoreProducts();
   const items = cat
@@ -45,6 +43,8 @@ function CategoryPage() {
 
   if (!cat) return null;
   const isAdire = cat.key === "adire";
+  const isBoys = cat.key === "boys";
+  const heroImage = isBoys ? (seedCategories.find((item) => item.key === "boys")?.image ?? cat.image) : cat.image;
 
   return (
     <div ref={ref}>
@@ -54,10 +54,14 @@ function CategoryPage() {
         }`}
       >
         <img
-          src={cat.image}
+          src={heroImage}
           alt=""
           className={`absolute inset-0 w-full h-full opacity-80 ${
-            isAdire ? "object-cover object-center" : "object-cover"
+            isAdire
+              ? "object-cover object-center"
+              : isBoys
+                ? "object-contain object-right-bottom md:object-center"
+                : "object-cover"
           }`}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background/75 via-background/20 to-transparent" />

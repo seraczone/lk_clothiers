@@ -1,11 +1,12 @@
 import { createFileRoute, Link, Outlet, useMatch } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
-import { categories, ngn } from "@/lib/catalog";
+import { ngn } from "@/lib/catalog";
 import { ProductCard } from "@/components/site/ProductCard";
 import { useReveal } from "@/hooks/use-reveal";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { useStoreProducts } from "@/hooks/use-store-products";
+import { useStoreCategories } from "@/hooks/use-store-categories";
 import { absoluteUrl } from "@/lib/seo";
 
 export const Route = createFileRoute("/shop")({
@@ -37,6 +38,7 @@ function ShopPage() {
   const categoryMatch = useMatch({ from: "/shop/$category", shouldThrow: false });
   const content = useSiteContent();
   const { products: shopProducts } = useStoreProducts();
+  const categories = useStoreCategories();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"new" | "low" | "high">("new");
   const [max, setMax] = useState(300000);

@@ -13,6 +13,7 @@ export const Route = createFileRoute("/cart")({
 function CartPage() {
   const { items, remove, setQty, subtotal, count } = useCart();
   const ref = useReveal<HTMLDivElement>();
+  const whatsappCheckout = checkoutWhatsAppUrl(items, subtotal);
 
   return (
     <div ref={ref} className="px-6 lg:px-12 py-16 lg:py-20 max-w-[1200px] mx-auto">
@@ -37,56 +38,65 @@ function CartPage() {
           <div className="divide-y divide-border border-y border-border">
             {items.map((it, i) => {
               const p = productById(it.id);
-              if (!p) return null;
+              const name = it.name ?? p?.name;
+              const image = it.image ?? p?.image;
+              const unitPrice = it.variantPrice ?? it.price ?? p?.price ?? 0;
+              if (!name || !image) return null;
+              const variantLabel =
+                it.variantType && it.variantValue ? `${it.variantType}: ${it.variantValue}` : "";
               return (
                 <div
-                  key={`${it.id}-${it.size}-${it.color}`}
+                  key={`${it.id}-${it.size}-${it.color}-${it.variantId ?? ""}`}
                   className="py-6 grid grid-cols-[100px_1fr_auto] gap-4 lg:gap-8 items-center reveal"
                   style={{ transitionDelay: `${i * 70}ms` }}
                 >
                   <Link
                     to="/product/$id"
-                    params={{ id: p.id }}
+                    params={{ id: it.id }}
                     className="block aspect-[4/5] overflow-hidden bg-[color:var(--cream)]"
                   >
-                    <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                    <img src={image} alt={name} className="w-full h-full object-cover" />
                   </Link>
                   <div>
                     <Link
                       to="/product/$id"
-                      params={{ id: p.id }}
+                      params={{ id: it.id }}
                       className="font-display text-lg lk-link"
                     >
-                      {p.name}
+                      {name}
                     </Link>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {it.color} - {it.size}
+                      {[it.color, it.size, variantLabel].filter(Boolean).join(" - ")}
                     </p>
                     <div className="mt-3 flex items-center gap-3">
                       <div className="flex items-center border border-border">
                         <button
-                          onClick={() => setQty(it.id, it.size, it.color, it.qty - 1)}
+                          onClick={() =>
+                            setQty(it.id, it.size, it.color, it.qty - 1, it.variantId)
+                          }
                           className="px-3 py-1"
                         >
                           -
                         </button>
                         <span className="px-3 tabular-nums">{it.qty}</span>
                         <button
-                          onClick={() => setQty(it.id, it.size, it.color, it.qty + 1)}
+                          onClick={() =>
+                            setQty(it.id, it.size, it.color, it.qty + 1, it.variantId)
+                          }
                           className="px-3 py-1"
                         >
                           +
                         </button>
                       </div>
                       <button
-                        onClick={() => remove(it.id, it.size, it.color)}
+                        onClick={() => remove(it.id, it.size, it.color, it.variantId)}
                         className="text-xs uppercase tracking-[0.2em] text-muted-foreground lk-link"
                       >
                         Remove
                       </button>
                     </div>
                   </div>
-                  <p className="font-display text-lg tabular-nums">{ngn(p.price * it.qty)}</p>
+                  <p className="font-display text-lg tabular-nums">{ngn(unitPrice * it.qty)}</p>
                 </div>
               );
             })}
@@ -111,9 +121,14 @@ function CartPage() {
               </div>
             </dl>
             <a
-              href={checkoutWhatsAppUrl(items, subtotal)}
+              href={whatsappCheckout}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
+              onClick={(event) => {
+                event.preventDefault();
+                const popup = window.open(whatsappCheckout, "_blank", "noopener,noreferrer");
+                if (!popup) window.location.href = whatsappCheckout;
+              }}
               className="mt-8 block text-center bg-[color:var(--accent)] text-white px-7 py-4 text-xs uppercase tracking-[0.25em] hover:bg-foreground transition-colors"
             >
               Checkout on WhatsApp

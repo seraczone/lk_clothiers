@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { Session } from "@supabase/supabase-js";
 import {
+  ArrowDown,
+  ArrowUp,
   BarChart3,
   Check,
   Copy,
@@ -24,20 +26,24 @@ import {
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 
 import {
-  adminCategories as categories,
+  adminCategories,
   defaultContent,
+  deleteAdminCategory,
   deleteAdminProduct,
   getSiteContent,
+  listAdminCategories,
   listAdminProducts,
   saveSiteContent,
   seedProducts,
   uploadProductImage,
+  upsertAdminCategory,
   upsertAdminProduct,
+  type AdminCategory,
   type AdminProduct,
   type ContentState,
   type ProductStatus,
 } from "@/lib/admin-data";
-import { ngn, products, type CategoryKey } from "@/lib/catalog";
+import { ngn, products, type CategoryKey, type ProductVariant } from "@/lib/catalog";
 import { isSupabaseConfigured, supabase, supabaseConfigError } from "@/lib/supabase";
 import { deliveryMethodLabels, formatOrderDate, listOrders, type SavedOrder } from "@/lib/orders";
 
@@ -53,6 +59,8 @@ type ProductDraft = Omit<AdminProduct, "price" | "stock" | "sizes" | "colors" | 
   sizes: string;
   colors: string;
   bestSeller: boolean;
+  useVariants: boolean;
+  variants: ProductVariant[];
 };
 
 const blankDraft = (): ProductDraft => ({
@@ -69,6 +77,8 @@ const blankDraft = (): ProductDraft => ({
   bestSeller: false,
   stock: "12",
   status: "Draft",
+  useVariants: false,
+  variants: [],
 });
 
 const tabs: { key: Tab; label: string; icon: ReactNode }[] = [
@@ -300,16 +310,18 @@ function AdminConsole({
 }) {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [adminProducts, setAdminProducts] = useState<AdminProduct[]>(seedProducts);
+  const [categories, setCategories] = useState<AdminCategory[]>(adminCategories);
   const [content, setContent] = useState<ContentState>(defaultContent);
   const [isLoading, setIsLoading] = useState(true);
   const [dataError, setDataError] = useState("");
 
   useEffect(() => {
     let mounted = true;
-    Promise.all([listAdminProducts(), getSiteContent()])
-      .then(([loadedProducts, loadedContent]) => {
+    Promise.all([listAdminProducts(), listAdminCategories(), getSiteContent()])
+      .then(([loadedProducts, loadedCategories, loadedContent]) => {
         if (!mounted) return;
         setAdminProducts(loadedProducts.length > 0 ? loadedProducts : seedProducts);
+        setCategories(loadedCategories.length > 0 ? loadedCategories : adminCategories);
         setContent(loadedContent);
         setDataError("");
       })
@@ -410,10 +422,20 @@ function AdminConsole({
           </header>
 
           {tab === "dashboard" && (
-            <Dashboard products={adminProducts} content={content} lowStockCount={lowStockCount} />
+            <Dashboard
+              products={adminProducts}
+              categories={categories}
+              content={content}
+              lowStockCount={lowStockCount}
+            />
           )}
           {tab === "products" && (
-            <ProductsTab products={adminProducts} onProductsChange={setAdminProducts} />
+            <ProductsTab
+              products={adminProducts}
+              categories={categories}
+              onProductsChange={setAdminProducts}
+              onCategoriesChange={setCategories}
+            />
           )}
           {tab === "orders" && <OrdersTab />}
           {tab === "customers" && <CustomersTab />}
@@ -428,10 +450,12 @@ function AdminConsole({
 
 function Dashboard({
   products: adminProducts,
+  categories,
   content,
   lowStockCount,
 }: {
   products: AdminProduct[];
+  categories: AdminCategory[];
   content: ContentState;
   lowStockCount: number;
 }) {
@@ -528,16 +552,26 @@ function Dashboard({
 
 function ProductsTab({
   products: adminProducts,
+  categories,
   onProductsChange,
+  onCategoriesChange,
 }: {
   products: AdminProduct[];
+  categories: AdminCategory[];
   onProductsChange: (products: AdminProduct[]) => void;
+  onCategoriesChange: (categories: AdminCategory[]) => void;
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<"all" | CategoryKey>("all");
   const [status, setStatus] = useState<"all" | ProductStatus>("all");
   const [editing, setEditing] = useState<AdminProduct | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [categoryDraft, setCategoryDraft] = useState<AdminCategory>({
+    key: "",
+    name: "",
+    image: "",
+    tagline: "",
+  });
   const [mutationError, setMutationError] = useState("");
   const [mutationSuccess, setMutationSuccess] = useState("");
 
@@ -610,6 +644,59 @@ function ProductsTab({
     }
   };
 
+  const saveCategory = async (event: FormEvent) => {
+    event.preventDefault();
+    const key = slugify(categoryDraft.key || categoryDraft.name);
+    if (!key || !categoryDraft.name.trim()) {
+      setMutationError("Category name is required.");
+      setMutationSuccess("");
+      return;
+    }
+
+    try {
+      const savedCategory = await upsertAdminCategory({
+        key,
+        name: categoryDraft.name.trim(),
+        image: categoryDraft.image.trim() || products[0]?.image || "",
+        tagline: categoryDraft.tagline.trim() || "LK collection",
+      });
+      const exists = categories.some((item) => item.key === savedCategory.key);
+      onCategoriesChange(
+        exists
+          ? categories.map((item) => (item.key === savedCategory.key ? savedCategory : item))
+          : [...categories, savedCategory],
+      );
+      setCategoryDraft({ key: "", name: "", image: "", tagline: "" });
+      setMutationError("");
+      setMutationSuccess(`${savedCategory.name} category was saved.`);
+    } catch (error) {
+      setMutationError(error instanceof Error ? error.message : "Unable to save category.");
+      setMutationSuccess("");
+    }
+  };
+
+  const removeCategory = async (key: string) => {
+    const categoryToDelete = categories.find((item) => item.key === key);
+    if (!categoryToDelete) return;
+    const hasProducts = adminProducts.some((product) => product.category === key);
+    if (hasProducts) {
+      setMutationError("Move products out of this category before deleting it.");
+      setMutationSuccess("");
+      return;
+    }
+    if (!window.confirm(`Delete ${categoryToDelete.name}?`)) return;
+
+    try {
+      await deleteAdminCategory(key);
+      onCategoriesChange(categories.filter((item) => item.key !== key));
+      setMutationError("");
+      setMutationSuccess(`${categoryToDelete.name} category was deleted.`);
+    } catch (error) {
+      setMutationError(error instanceof Error ? error.message : "Unable to delete category.");
+      setMutationSuccess("");
+    }
+  };
+
   return (
     <div className="space-y-5">
       <Panel
@@ -675,6 +762,73 @@ function ProductsTab({
         </div>
       </Panel>
 
+      <Panel title="Create Product Categories">
+        <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
+          Add a new category here, then select it when creating or editing products.
+        </p>
+        <form onSubmit={saveCategory} className="grid gap-3 lg:grid-cols-[1fr_1fr_1.2fr_1fr_auto]">
+          <Field
+            label="Name"
+            value={categoryDraft.name}
+            onChange={(value) =>
+              setCategoryDraft((current) => ({
+                ...current,
+                name: value,
+                key: current.key || slugify(value),
+              }))
+            }
+          />
+          <Field
+            label="Slug"
+            value={categoryDraft.key}
+            onChange={(value) => setCategoryDraft((current) => ({ ...current, key: slugify(value) }))}
+          />
+          <Field
+            label="Image URL"
+            value={categoryDraft.image}
+            placeholder="Optional"
+            onChange={(value) => setCategoryDraft((current) => ({ ...current, image: value }))}
+          />
+          <Field
+            label="Tagline"
+            value={categoryDraft.tagline}
+            onChange={(value) => setCategoryDraft((current) => ({ ...current, tagline: value }))}
+          />
+          <button
+            type="submit"
+            className="mt-5 inline-flex h-11 items-center justify-center rounded-[6px] bg-foreground px-4 text-xs uppercase tracking-[0.18em] text-background transition-colors hover:bg-[color:var(--accent)]"
+          >
+            Save Category
+          </button>
+        </form>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {categories.map((item) => (
+            <span
+              key={item.key}
+              className="inline-flex items-center gap-2 rounded-[6px] border border-border bg-[color:var(--cream)] px-3 py-2 text-xs"
+            >
+              {item.name}
+              <button
+                type="button"
+                onClick={() => {
+                  setCategoryDraft(item);
+                }}
+                className="uppercase tracking-[0.16em] text-[color:var(--accent)]"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => removeCategory(item.key)}
+                className="uppercase tracking-[0.16em] text-[color:var(--destructive)]"
+              >
+                Delete
+              </button>
+            </span>
+          ))}
+        </div>
+      </Panel>
+
       <div className="overflow-hidden rounded-[8px] border border-border bg-background">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-left text-sm">
@@ -705,7 +859,11 @@ function ProductsTab({
                     </div>
                   </td>
                   <td className="px-4 py-3 capitalize">{product.category}</td>
-                  <td className="px-4 py-3 tabular-nums">{ngn(product.price)}</td>
+                  <td className="px-4 py-3 tabular-nums">
+                    {product.useVariants && product.variants?.length
+                      ? `${ngn(Math.min(...product.variants.map((variant) => variant.price)))}+`
+                      : ngn(product.price)}
+                  </td>
                   <td className="px-4 py-3">
                     <span className={product.stock <= 5 ? "text-[color:var(--destructive)]" : ""}>
                       {product.stock}
@@ -750,6 +908,7 @@ function ProductsTab({
         <ProductEditor
           product={editing}
           products={adminProducts}
+          categories={categories}
           onClose={() => {
             setEditing(null);
             setIsCreating(false);
@@ -764,11 +923,13 @@ function ProductsTab({
 function ProductEditor({
   product,
   products: adminProducts,
+  categories,
   onClose,
   onSave,
 }: {
   product: AdminProduct | null;
   products: AdminProduct[];
+  categories: AdminCategory[];
   onClose: () => void;
   onSave: (product: AdminProduct) => Promise<void>;
 }) {
@@ -798,7 +959,7 @@ function ProductEditor({
     }
     const parsedPrice = Number(draft.price);
     const parsedStock = Number(draft.stock);
-    if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+    if (!draft.useVariants && (!Number.isFinite(parsedPrice) || parsedPrice < 0)) {
       setError("Enter a valid product price.");
       return;
     }
@@ -815,13 +976,44 @@ function ProductEditor({
       setError("Wait for the image upload to finish before saving.");
       return;
     }
+    const variants = draft.useVariants
+      ? draft.variants.map((variant, index) => ({
+          ...variant,
+          id: variant.id || `${normalizedId}-${Date.now()}-${index}`,
+          productId: normalizedId,
+          variantType: variant.variantType.trim(),
+          variantValue: variant.variantValue.trim(),
+          sku: variant.sku?.trim() || undefined,
+          price: Number(variant.price),
+          stock: Math.round(Number(variant.stock)),
+          position: index,
+        }))
+      : [];
+    if (
+      draft.useVariants &&
+      (variants.length === 0 ||
+        variants.some(
+          (variant) =>
+            !variant.variantType ||
+            !variant.variantValue ||
+            !Number.isFinite(variant.price) ||
+            variant.price < 0 ||
+            !Number.isFinite(variant.stock) ||
+            variant.stock < 0,
+        ))
+    ) {
+      setError("Each variant needs a type, value, valid price, and valid stock.");
+      return;
+    }
     setIsSaving(true);
     try {
       const gallery = normalizeGallery(imageUrl, draft.gallery);
       await onSave({
         id: normalizedId,
         name: draft.name.trim(),
-        price: parsedPrice,
+        price: draft.useVariants ? variants[0]?.price ?? 0 : parsedPrice,
+        useVariants: draft.useVariants,
+        variants,
         category: draft.category,
         image: imageUrl,
         gallery,
@@ -830,7 +1022,9 @@ function ProductEditor({
         description: draft.description.trim(),
         tag: (draft.tag ?? "").trim() || undefined,
         bestSeller: draft.bestSeller,
-        stock: Math.round(parsedStock),
+        stock: draft.useVariants
+          ? variants.reduce((total, variant) => total + variant.stock, 0)
+          : Math.round(parsedStock),
         status: draft.status,
       });
       setError("");
@@ -924,6 +1118,56 @@ function ProductEditor({
     });
   };
 
+  const addVariant = () => {
+    const productId = product?.id ?? (slugify(draft.id || draft.name) || "product");
+    setDraft((current) => ({
+      ...current,
+      variants: [
+        ...(current.variants ?? []),
+        {
+          id: `${productId}-variant-${Date.now()}`,
+          productId,
+          variantType: "Age",
+          variantValue: "",
+          price: Number(current.price) || 0,
+          stock: 0,
+          sku: "",
+          position: current.variants?.length ?? 0,
+        },
+      ],
+    }));
+  };
+
+  const updateVariant = <K extends keyof ProductVariant>(
+    index: number,
+    key: K,
+    value: ProductVariant[K],
+  ) => {
+    setDraft((current) => ({
+      ...current,
+      variants: current.variants.map((variant, variantIndex) =>
+        variantIndex === index ? { ...variant, [key]: value } : variant,
+      ),
+    }));
+  };
+
+  const removeVariant = (index: number) => {
+    setDraft((current) => ({
+      ...current,
+      variants: current.variants.filter((_, variantIndex) => variantIndex !== index),
+    }));
+  };
+
+  const moveVariant = (index: number, direction: -1 | 1) => {
+    setDraft((current) => {
+      const target = index + direction;
+      if (target < 0 || target >= current.variants.length) return current;
+      const variants = [...current.variants];
+      [variants[index], variants[target]] = [variants[target], variants[index]];
+      return { ...current, variants };
+    });
+  };
+
   return (
     <div className="fixed inset-0 z-[80] bg-foreground/45 p-4 backdrop-blur-sm">
       <div className="ml-auto flex h-full w-full max-w-3xl flex-col overflow-hidden rounded-[8px] border border-border bg-background shadow-2xl">
@@ -969,12 +1213,14 @@ function ProductEditor({
               type="number"
               value={draft.price}
               onChange={(value) => updateDraft("price", value)}
+              disabled={draft.useVariants}
             />
             <Field
               label="Stock"
               type="number"
               value={draft.stock}
               onChange={(value) => updateDraft("stock", value)}
+              disabled={draft.useVariants}
             />
             <label className="block">
               <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -991,6 +1237,15 @@ function ProductEditor({
                   </option>
                 ))}
               </select>
+            </label>
+            <label className="mt-7 flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={draft.useVariants}
+                onChange={(event) => updateDraft("useVariants", event.target.checked)}
+                className="h-4 w-4 accent-[color:var(--accent)]"
+              />
+              Use Product Variants
             </label>
             <label className="block">
               <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -1157,6 +1412,87 @@ function ProductEditor({
             </label>
           </div>
 
+          {draft.useVariants && (
+            <div className="mt-6 rounded-[8px] border border-border bg-background p-4">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-display text-2xl">Product Variants</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Add price and stock options such as age, size, color, material, or any future
+                    variant type.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={addVariant}
+                  className="inline-flex items-center gap-2 rounded-[6px] bg-foreground px-3 py-2 text-xs uppercase tracking-[0.18em] text-background hover:bg-[color:var(--accent)]"
+                >
+                  <Plus size={14} />
+                  Add Variant
+                </button>
+              </div>
+              <div className="space-y-3">
+                {draft.variants.map((variant, index) => (
+                  <div
+                    key={variant.id || index}
+                    className="grid gap-3 rounded-[8px] border border-border bg-[color:var(--cream)] p-3 lg:grid-cols-[1fr_1fr_120px_100px_1fr_auto]"
+                  >
+                    <Field
+                      label="Variant Type"
+                      value={variant.variantType}
+                      onChange={(value) => updateVariant(index, "variantType", value)}
+                      placeholder="Age, Size, Color"
+                    />
+                    <Field
+                      label="Value"
+                      value={variant.variantValue}
+                      onChange={(value) => updateVariant(index, "variantValue", value)}
+                      placeholder="2-3 Years, Medium"
+                    />
+                    <Field
+                      label="Price"
+                      type="number"
+                      value={String(variant.price)}
+                      onChange={(value) => updateVariant(index, "price", Number(value))}
+                    />
+                    <Field
+                      label="Stock"
+                      type="number"
+                      value={String(variant.stock)}
+                      onChange={(value) => updateVariant(index, "stock", Number(value))}
+                    />
+                    <Field
+                      label="SKU"
+                      value={variant.sku ?? ""}
+                      onChange={(value) => updateVariant(index, "sku", value)}
+                      placeholder="Optional"
+                    />
+                    <div className="mt-5 flex items-center gap-1">
+                      <IconButton label="Move variant up" onClick={() => moveVariant(index, -1)}>
+                        <ArrowUp size={14} />
+                      </IconButton>
+                      <IconButton label="Move variant down" onClick={() => moveVariant(index, 1)}>
+                        <ArrowDown size={14} />
+                      </IconButton>
+                      <IconButton
+                        label="Delete variant"
+                        onClick={() => removeVariant(index)}
+                        danger
+                      >
+                        <Trash2 size={14} />
+                      </IconButton>
+                    </div>
+                  </div>
+                ))}
+                {draft.variants.length === 0 && (
+                  <p className="rounded-[6px] bg-[color:var(--cream)] px-3 py-3 text-xs text-muted-foreground">
+                    No variants yet. Add at least one variant before saving with variants enabled.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="mt-6 rounded-[8px] border border-border bg-[color:var(--cream)] p-4">
             <p className="mb-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
               Preview
@@ -1171,7 +1507,11 @@ function ProductEditor({
                 <p className="font-display text-2xl">{draft.name || "Product name"}</p>
                 <p className="mt-1 text-sm text-muted-foreground">{draft.category}</p>
                 <p className="mt-2 text-sm tabular-nums">
-                  {draft.price ? ngn(Number(draft.price)) : "NGN 0"}
+                  {draft.useVariants && draft.variants.length > 0
+                    ? `${ngn(Math.min(...draft.variants.map((variant) => Number(variant.price) || 0)))}+`
+                    : draft.price
+                      ? ngn(Number(draft.price))
+                      : "NGN 0"}
                 </p>
               </div>
             </div>
@@ -1517,6 +1857,24 @@ function OrdersTab() {
                 <dd>{selectedOrder.customer.phone}</dd>
               </div>
             </dl>
+            <div className="mt-5">
+              <p className="eyebrow mb-2">Items</p>
+              <div className="space-y-2">
+                {selectedOrder.items.map((item) => (
+                  <div
+                    key={`${item.id}-${item.size}-${item.color}-${item.variantId ?? ""}`}
+                    className="rounded-[6px] border border-border bg-background px-3 py-2 text-sm"
+                  >
+                    <p className="font-medium">{item.name ?? item.id}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {[item.color, item.size, formatCartVariant(item), `Qty: ${item.qty}`]
+                        .filter(Boolean)
+                        .join(" - ")}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
           <div>
             <p className="eyebrow mb-2">Order Notification</p>
@@ -1855,4 +2213,9 @@ function humanize(value: string) {
     .replace(/([A-Z])/g, " $1")
     .replace(/[-_]/g, " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatCartVariant(item: { variantType?: string; variantValue?: string }) {
+  if (!item.variantType || !item.variantValue) return "";
+  return `${item.variantType}: ${item.variantValue}`;
 }

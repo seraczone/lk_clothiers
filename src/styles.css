@@ -212,9 +212,7 @@
     display: grid;
     place-items: center;
     overflow: hidden;
-    background:
-      radial-gradient(circle at center, oklch(0.28 0.08 45 / 42%), transparent 34rem),
-      oklch(0.03 0.01 50);
+    background: #ffffff;
     animation: lk-preloader-fade 3.2s ease forwards;
   }
 
@@ -225,7 +223,7 @@
     border-radius: 999px;
     background: radial-gradient(circle, oklch(0.68 0.18 45 / 26%), transparent 66%);
     filter: blur(22px);
-    animation: lk-preloader-pulse 1.35s ease-in-out infinite;
+    display: none;
   }
 
   .lk-site-preloader__image {
@@ -233,10 +231,9 @@
     width: min(76vw, 31rem);
     max-height: 76vh;
     object-fit: contain;
-    filter: drop-shadow(0 28px 48px oklch(0 0 0 / 48%));
     transform-origin: center;
-    animation: lk-preloader-roll 1.05s linear infinite;
-    will-change: transform;
+    animation: lk-preloader-zoom-in 1.8s ease-out both;
+    will-change: opacity, transform;
   }
 
   .hero-sticky {
@@ -417,12 +414,14 @@
     }
   }
 
-  @keyframes lk-preloader-roll {
+  @keyframes lk-preloader-zoom-in {
     from {
-      transform: rotate(0deg) scale(0.92);
+      opacity: 0;
+      transform: scale(0.2);
     }
     to {
-      transform: rotate(360deg) scale(0.92);
+      opacity: 1;
+      transform: scale(1);
     }
   }
 

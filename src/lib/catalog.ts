@@ -1,6 +1,7 @@
 import amaraPrintDressFront from "@/assets/amara-print-dress-front.png";
 import amaraPrintDressPrimary from "@/assets/amara-print-dress-primary.png";
 import amaraPrintDressSide from "@/assets/amara-print-dress-side.png";
+import boysBlueKaftanHero from "@/assets/boys-blue-kaftan-hero.jpeg";
 import girlDressesAsset from "@/assets/girl-dresses.png";
 
 const publicSupabaseUrl = "https://mtymltempomoqdbfhngw.supabase.co";
@@ -20,7 +21,6 @@ export const catalogImages = {
   boubouEmbellishedColors: productImage("boubou-embellished-colors.jpeg"),
   boysKaftanSageTan: productImage("boys-kaftan-sage-tan.jpeg"),
   boysKaftanWhite: productImage("boys-kaftan-white.jpeg"),
-  catBoubou: productImage("cat-boubou.jpg"),
   girlDresses: girlDressesAsset,
   linenLongShirtMint: productImage("linen-long-shirt-mint.jpeg"),
   linenLongShirtYellow: productImage("linen-long-shirt-yellow.jpeg"),
@@ -49,7 +49,6 @@ const {
   boubouEmbellishedColors,
   boysKaftanSageTan,
   boysKaftanWhite,
-  catBoubou,
   girlDresses,
   linenLongShirtMint,
   linenLongShirtYellow,
@@ -72,20 +71,32 @@ const {
   silkFlareTrio,
 } = catalogImages;
 
-export type CategoryKey =
-  | "girls"
-  | "boys"
-  | "shirt-dress"
-  | "luxury-kaftan"
-  | "linen"
-  | "boubou"
-  | "adire"
-  | "silk";
+export type CategoryKey = string;
+
+export type Category = {
+  key: CategoryKey;
+  name: string;
+  image: string;
+  tagline: string;
+};
+
+export type ProductVariant = {
+  id: string;
+  productId: string;
+  variantType: string;
+  variantValue: string;
+  price: number;
+  stock: number;
+  sku?: string;
+  position: number;
+};
 
 export type Product = {
   id: string;
   name: string;
   price: number;
+  useVariants?: boolean;
+  variants?: ProductVariant[];
   category: CategoryKey;
   image: string;
   gallery?: string[];
@@ -96,9 +107,10 @@ export type Product = {
   bestSeller?: boolean;
 };
 
-export const categories: { key: CategoryKey; name: string; image: string; tagline: string }[] = [
+export const categories: Category[] = [
   { key: "girls", name: "Girls", image: girlDresses, tagline: "Mini LK" },
-  { key: "boys", name: "Boys", image: boysKaftanSageTan, tagline: "Little gentlemen" },
+  { key: "boys", name: "Boys", image: boysBlueKaftanHero, tagline: "Little gentlemen" },
+  { key: "shirt", name: "Shirt", image: linenLongShirtMint, tagline: "Tailored everyday shirts" },
   {
     key: "shirt-dress",
     name: "Shirt Dress",

@@ -168,10 +168,16 @@ export function formatOrderDate(value: string) {
 
 function formatOrderLine(item: CartItem) {
   const product = productById(item.id);
-  if (!product) return "";
-  return `- ${product.name} (${item.color}, ${item.size}) x${item.qty}: ${ngn(
-    product.price * item.qty,
-  )}`;
+  const name = item.name ?? product?.name;
+  if (!name) return "";
+  const price = item.variantPrice ?? item.price ?? product?.price ?? 0;
+  const options = [item.color, item.size, formatVariantLabel(item)].filter(Boolean).join(", ");
+  return `- ${name} (${options}) x${item.qty}: ${ngn(price * item.qty)}`;
+}
+
+function formatVariantLabel(item: CartItem) {
+  if (!item.variantType || !item.variantValue) return "";
+  return `${item.variantType}: ${item.variantValue}`;
 }
 
 function orderFromRow(row: Record<string, unknown>): SavedOrder {

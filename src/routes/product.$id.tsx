@@ -73,6 +73,7 @@ function ProductPage() {
   const [size, setSize] = useState("");
   const [color, setColor] = useState("");
   const [qty, setQty] = useState(1);
+  const [selectedVariantId, setSelectedVariantId] = useState("");
   const [zoom, setZoom] = useState(false);
   const [added, setAdded] = useState(false);
   const [active, setActive] = useState("");
@@ -89,9 +90,24 @@ function ProductPage() {
     if (!product) return;
     setSize(product.sizes[0] ?? "");
     setColor(product.colors[0] ?? "");
+    setSelectedVariantId(
+      product.useVariants
+        ? (product.variants?.find((variant) => variant.stock > 0)?.id ??
+            product.variants?.[0]?.id ??
+            "")
+        : "",
+    );
     setActive((product.gallery ?? [product.image])[0] ?? "");
-    setQty((currentQty) => Math.min(Math.max(1, currentQty), Math.max(1, product.stock)));
   }, [product]);
+
+  useEffect(() => {
+    if (!product) return;
+    const variants = product.useVariants ? (product.variants ?? []) : [];
+    const selectedVariant =
+      variants.find((variant) => variant.id === selectedVariantId) ?? variants[0];
+    const maxStock = selectedVariant?.stock ?? product.stock;
+    setQty((currentQty) => Math.min(Math.max(1, currentQty), Math.max(1, maxStock)));
+  }, [product, selectedVariantId]);
 
   useEffect(() => {
     setStoredReviews(readStoredReviews(productId));
@@ -113,7 +129,15 @@ function ProductPage() {
   }
 
   const gallery = product.gallery ?? [product.image];
-  const inStock = product.stock > 0;
+  const variants = product.useVariants ? (product.variants ?? []) : [];
+  const selectedVariant =
+    variants.find((variant) => variant.id === selectedVariantId) ?? variants[0];
+  const selectedPrice = selectedVariant?.price ?? product.price;
+  const selectedStock = selectedVariant?.stock ?? product.stock;
+  const selectedVariantLabel = selectedVariant
+    ? `${selectedVariant.variantType}: ${selectedVariant.variantValue}`
+    : "";
+  const inStock = selectedStock > 0;
   const seedReviews = getSeedReviews(product);
   const reviews = [...storedReviews, ...seedReviews];
   const reviewSummary = summarizeReviews(reviews);
@@ -123,7 +147,20 @@ function ProductPage() {
 
   const handleAdd = () => {
     if (!inStock) return;
-    add({ id: product.id, size, color, qty });
+    add({
+      id: product.id,
+      size,
+      color,
+      qty,
+      name: product.name,
+      image: product.image,
+      price: product.price,
+      variantId: selectedVariant?.id,
+      variantType: selectedVariant?.variantType,
+      variantValue: selectedVariant?.variantValue,
+      variantSku: selectedVariant?.sku,
+      variantPrice: selectedVariant?.price,
+    });
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
   };
@@ -214,7 +251,7 @@ function ProductPage() {
           <p className="eyebrow mb-4 capitalize">{product.category}</p>
           <h1 className="font-display text-4xl lg:text-5xl leading-tight">{product.name}</h1>
           <p className="mt-4 font-display text-2xl text-[color:var(--accent)]">
-            {ngn(product.price)}
+            {ngn(selectedPrice)}
           </p>
           <div
             className="mt-4 flex flex-wrap items-center gap-3 text-sm text-muted-foreground"
@@ -241,7 +278,7 @@ function ProductPage() {
                 : "border-[color:var(--destructive)]/40 text-[color:var(--destructive)]"
             }`}
           >
-            {inStock ? "In Stock" : "Out of Stock"}
+            {inStock ? `${selectedStock} In Stock` : "Out of Stock"}
           </p>
           <p className="mt-8 text-sm text-muted-foreground leading-relaxed">
             {product.description}
@@ -263,6 +300,37 @@ function ProductPage() {
               ))}
             </div>
           </div>
+
+          {variants.length > 0 && (
+            <div className="mt-8">
+              <p className="eyebrow mb-3">
+                {selectedVariant?.variantType ?? "Variant"} /{" "}
+                <span className="text-foreground">{selectedVariant?.variantValue}</span>
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {variants.map((variant) => (
+                  <button
+                    key={variant.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedVariantId(variant.id);
+                      setQty((currentQty) =>
+                        Math.min(Math.max(1, currentQty), Math.max(1, variant.stock)),
+                      );
+                    }}
+                    className={`border px-4 py-2 text-left text-xs uppercase tracking-[0.16em] ${
+                      selectedVariant?.id === variant.id
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border"
+                    }`}
+                  >
+                    <span className="block">{variant.variantValue}</span>
+                    <span className="mt-1 block text-[10px] opacity-75">{ngn(variant.price)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="mt-8">
             <p className="eyebrow mb-3">
@@ -292,8 +360,8 @@ function ProductPage() {
               </button>
               <span className="px-4 tabular-nums">{qty}</span>
               <button
-                onClick={() => setQty((q) => Math.min(product.stock, q + 1))}
-                disabled={!inStock || qty >= product.stock}
+                onClick={() => setQty((q) => Math.min(selectedStock, q + 1))}
+                disabled={!inStock || qty >= selectedStock}
                 className="px-4 py-3 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 +
@@ -310,7 +378,14 @@ function ProductPage() {
 
           {inStock ? (
             <a
-              href={productWhatsAppUrl(product.name, product.price, color, size, qty)}
+              href={productWhatsAppUrl(
+                product.name,
+                selectedPrice,
+                color,
+                size,
+                qty,
+                selectedVariantLabel,
+              )}
               target="_blank"
               rel="noreferrer"
               className="mt-3 block text-center border border-[color:var(--accent)] text-[color:var(--accent)] px-7 py-4 text-xs uppercase tracking-[0.25em] hover:bg-[color:var(--accent)] hover:text-white transition-colors"
@@ -369,7 +444,9 @@ function ProductPage() {
                     <img src={p.image} alt={p.name} className="w-full h-full object-contain" />
                   </div>
                   <p className="font-display text-lg">{p.name}</p>
-                  <p className="text-xs text-muted-foreground">{ngn(p.price)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {ngn(p.useVariants && p.variants?.[0] ? p.variants[0].price : p.price)}
+                  </p>
                 </Link>
               ))}
             </div>

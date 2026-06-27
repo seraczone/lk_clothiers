@@ -28,8 +28,18 @@ export function ProductCard({
   const defaultSize = p.sizes[0];
   const defaultColor = p.colors[0];
   const reviewSummary = getProductReviewSummary(p);
+  const variants = p.useVariants ? (p.variants ?? []) : [];
+  const defaultVariant = variants.find((variant) => variant.stock > 0) ?? variants[0];
+  const displayPrice = defaultVariant?.price ?? p.price;
+  const variantLabel = defaultVariant
+    ? `${defaultVariant.variantType}: ${defaultVariant.variantValue}`
+    : "";
   const isInCart = items.some(
-    (item) => item.id === p.id && item.size === defaultSize && item.color === defaultColor,
+    (item) =>
+      item.id === p.id &&
+      item.size === defaultSize &&
+      item.color === defaultColor &&
+      (item.variantId ?? "") === (defaultVariant?.id ?? ""),
   );
 
   const handleAdd = (e: MouseEvent) => {
@@ -38,12 +48,25 @@ export function ProductCard({
     if (!inStock) return;
 
     if (isInCart) {
-      remove(p.id, defaultSize, defaultColor);
+      remove(p.id, defaultSize, defaultColor, defaultVariant?.id);
       setAdded(false);
       return;
     }
 
-    add({ id: p.id, size: defaultSize, color: defaultColor, qty: 1 });
+    add({
+      id: p.id,
+      size: defaultSize,
+      color: defaultColor,
+      qty: 1,
+      name: p.name,
+      image: p.image,
+      price: p.price,
+      variantId: defaultVariant?.id,
+      variantType: defaultVariant?.variantType,
+      variantValue: defaultVariant?.variantValue,
+      variantSku: defaultVariant?.sku,
+      variantPrice: defaultVariant?.price,
+    });
     setAdded(true);
     setTimeout(() => setAdded(false), 1600);
   };
@@ -115,7 +138,8 @@ export function ProductCard({
         <span>{ratingLabel(reviewSummary)}</span>
       </div>
       <p className="text-xs text-muted-foreground mt-1">
-        {ngn(p.price)} - <span className="capitalize">{p.category}</span>
+        {ngn(displayPrice)}
+        {variants.length > 1 ? "+" : ""} - <span className="capitalize">{p.category}</span>
       </p>
       <div className={`mt-3 grid gap-2 ${showDetails ? "grid-cols-2" : "grid-cols-1"}`}>
         <button
@@ -137,7 +161,7 @@ export function ProductCard({
       </div>
       {showWhatsApp && (
         <a
-          href={productWhatsAppUrl(p.name, p.price, p.colors[0], p.sizes[0])}
+          href={productWhatsAppUrl(p.name, displayPrice, p.colors[0], p.sizes[0], 1, variantLabel)}
           target="_blank"
           rel="noreferrer"
           className="mt-2 min-h-10 rounded-[6px] border border-[color:var(--accent)]/70 bg-background/70 px-2 py-2.5 text-center text-[9px] font-medium uppercase tracking-[0.14em] text-[color:var(--accent)] transition-colors hover:bg-[color:var(--accent)] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--accent)] sm:px-3 sm:text-[10px] sm:tracking-[0.2em]"
