@@ -939,6 +939,12 @@ function ProductEditor({
   const [isUploading, setIsUploading] = useState(false);
   const [galleryUrlInput, setGalleryUrlInput] = useState("");
 
+  useEffect(() => {
+    if (categories.length === 0) return;
+    if (categories.some((category) => category.key === draft.category)) return;
+    updateDraft("category", categories[0].key);
+  }, [categories, draft.category]);
+
   const updateDraft = <K extends keyof ProductDraft>(key: K, value: ProductDraft[K]) => {
     setDraft((current) => ({ ...current, [key]: value }));
   };
@@ -955,6 +961,14 @@ function ProductEditor({
     );
     if (duplicate) {
       setError("A product with this SKU already exists.");
+      return;
+    }
+    if (categories.length === 0) {
+      setError("Create a product category before saving products.");
+      return;
+    }
+    if (!categories.some((category) => category.key === draft.category)) {
+      setError("Choose an existing product category before saving.");
       return;
     }
     const parsedPrice = Number(draft.price);

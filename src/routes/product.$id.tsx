@@ -9,6 +9,7 @@ import { productWhatsAppUrl } from "@/lib/whatsapp";
 import { useReveal } from "@/hooks/use-reveal";
 import { seedProducts } from "@/lib/admin-data";
 import { useStoreProducts } from "@/hooks/use-store-products";
+import { fallbackImageForProduct, handleImageFallback } from "@/lib/product-images";
 import {
   getSeedReviews,
   categoryName,
@@ -129,6 +130,7 @@ function ProductPage() {
   }
 
   const gallery = product.gallery ?? [product.image];
+  const fallbackImage = fallbackImageForProduct(product);
   const variants = product.useVariants ? (product.variants ?? []) : [];
   const selectedVariant =
     variants.find((variant) => variant.id === selectedVariantId) ?? variants[0];
@@ -225,7 +227,12 @@ function ProductPage() {
             className="relative aspect-[4/5] bg-[color:var(--cream)] overflow-hidden cursor-zoom-in"
             onClick={() => setZoom(true)}
           >
-            <img src={active} alt={product.name} className="w-full h-full object-contain" />
+            <img
+              src={active}
+              alt={product.name}
+              onError={(event) => handleImageFallback(event, fallbackImage)}
+              className="w-full h-full object-contain"
+            />
             {product.tag && (
               <span className="absolute top-4 left-4 bg-background/90 px-2.5 py-1 text-[10px] uppercase tracking-[0.2em]">
                 {product.tag}
@@ -240,7 +247,12 @@ function ProductPage() {
                   onClick={() => setActive(g)}
                   className={`w-20 h-24 overflow-hidden border ${active === g ? "border-foreground" : "border-border"}`}
                 >
-                  <img src={g} alt="" className="w-full h-full object-contain" />
+                  <img
+                    src={g}
+                    alt=""
+                    onError={(event) => handleImageFallback(event, fallbackImage)}
+                    className="w-full h-full object-contain"
+                  />
                 </button>
               ))}
             </div>
@@ -441,7 +453,14 @@ function ProductPage() {
                   style={{ transitionDelay: `${i * 80}ms` }}
                 >
                   <div className="relative aspect-[4/5] overflow-hidden bg-background mb-3">
-                    <img src={p.image} alt={p.name} className="w-full h-full object-contain" />
+                    <img
+                      src={p.image}
+                      alt={p.name}
+                      onError={(event) =>
+                        handleImageFallback(event, fallbackImageForProduct(p))
+                      }
+                      className="w-full h-full object-contain"
+                    />
                   </div>
                   <p className="font-display text-lg">{p.name}</p>
                   <p className="text-xs text-muted-foreground">
@@ -459,7 +478,12 @@ function ProductPage() {
           className="fixed inset-0 z-[60] bg-foreground/90 backdrop-blur p-4 flex items-center justify-center cursor-zoom-out"
           onClick={() => setZoom(false)}
         >
-          <img src={active} alt={product.name} className="max-h-full max-w-full object-contain" />
+          <img
+            src={active}
+            alt={product.name}
+            onError={(event) => handleImageFallback(event, fallbackImage)}
+            className="max-h-full max-w-full object-contain"
+          />
         </div>
       )}
     </div>

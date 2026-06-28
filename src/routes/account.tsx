@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { products, ngn } from "@/lib/catalog";
 import { WHATSAPP_DISPLAY } from "@/lib/whatsapp";
+import { fallbackImageForProduct, handleImageFallback } from "@/lib/product-images";
 import {
   deliveryMethodLabels,
   formatOrderDate,
@@ -107,7 +108,12 @@ function AccountPage() {
                     className="product-card group"
                   >
                     <div className="relative aspect-[4/5] bg-[color:var(--cream)] mb-3 overflow-hidden">
-                      <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                      <img
+                        src={p.image}
+                        alt={p.name}
+                        onError={(event) => handleImageFallback(event, fallbackImageForProduct(p))}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <p className="font-display text-lg">{p.name}</p>
                     <p className="text-xs text-muted-foreground">{ngn(p.price)}</p>

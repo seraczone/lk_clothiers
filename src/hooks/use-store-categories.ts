@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { adminCategories, listAdminCategories, type AdminCategory } from "@/lib/admin-data";
+import { isSupabaseConfigured } from "@/lib/supabase";
 
 export function useStoreCategories() {
   const [categories, setCategories] = useState<AdminCategory[]>(adminCategories);
@@ -9,7 +10,14 @@ export function useStoreCategories() {
     let mounted = true;
     listAdminCategories()
       .then((loadedCategories) => {
-        if (mounted) setCategories(loadedCategories.length > 0 ? loadedCategories : adminCategories);
+        if (!mounted) return;
+        setCategories(
+          isSupabaseConfigured
+            ? loadedCategories
+            : loadedCategories.length > 0
+              ? loadedCategories
+              : adminCategories,
+        );
       })
       .catch(() => {
         if (mounted) setCategories(adminCategories);

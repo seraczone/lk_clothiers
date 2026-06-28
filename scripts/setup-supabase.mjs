@@ -569,8 +569,16 @@ async function removeDeletedGeneratedAssets() {
 }
 
 async function upsertPolicies(client) {
+  await client.query(`
+    drop policy if exists products_insert_mvp on public.products;
+    drop policy if exists products_update_mvp on public.products;
+    drop policy if exists products_delete_mvp on public.products;
+    drop policy if exists site_content_insert_mvp on public.site_content;
+    drop policy if exists site_content_update_mvp on public.site_content;
+  `);
+
   const policies = [
-    ["categories_select_public", "categories", "select", "using (true)"],
+    ["categories_select_public", "categories", "select", "to anon, authenticated using (true)"],
     ["categories_insert_admin", "categories", "insert", "to authenticated with check (true)"],
     [
       "categories_update_admin",
@@ -579,8 +587,21 @@ async function upsertPolicies(client) {
       "to authenticated using (true) with check (true)",
     ],
     ["categories_delete_admin", "categories", "delete", "to authenticated using (true)"],
-    ["products_select_public", "products", "select", "using (true)"],
-    ["product_variants_select_public", "product_variants", "select", "using (true)"],
+    ["products_select_public", "products", "select", "to anon, authenticated using (true)"],
+    ["products_insert_admin", "products", "insert", "to authenticated with check (true)"],
+    [
+      "products_update_admin",
+      "products",
+      "update",
+      "to authenticated using (true) with check (true)",
+    ],
+    ["products_delete_admin", "products", "delete", "to authenticated using (true)"],
+    [
+      "product_variants_select_public",
+      "product_variants",
+      "select",
+      "to anon, authenticated using (true)",
+    ],
     [
       "product_variants_insert_admin",
       "product_variants",
@@ -599,7 +620,15 @@ async function upsertPolicies(client) {
       "delete",
       "to authenticated using (true)",
     ],
-    ["site_content_select_public", "site_content", "select", "using (true)"],
+    ["site_content_select_public", "site_content", "select", "to anon, authenticated using (true)"],
+    ["site_content_insert_admin", "site_content", "insert", "to authenticated with check (true)"],
+    [
+      "site_content_update_admin",
+      "site_content",
+      "update",
+      "to authenticated using (true) with check (true)",
+    ],
+    ["site_content_delete_admin", "site_content", "delete", "to authenticated using (true)"],
     [
       "deleted_products_select_public",
       "deleted_products",
@@ -626,11 +655,8 @@ async function upsertPolicies(client) {
     ],
     ["orders_insert_public", "orders", "insert", "to anon, authenticated with check (true)"],
     ["orders_select_admin", "orders", "select", "to authenticated using (true)"],
-    ["products_insert_mvp", "products", "insert", "with check (true)"],
-    ["products_update_mvp", "products", "update", "using (true) with check (true)"],
-    ["products_delete_mvp", "products", "delete", "using (true)"],
-    ["site_content_insert_mvp", "site_content", "insert", "with check (true)"],
-    ["site_content_update_mvp", "site_content", "update", "using (true) with check (true)"],
+    ["orders_update_admin", "orders", "update", "to authenticated using (true) with check (true)"],
+    ["orders_delete_admin", "orders", "delete", "to authenticated using (true)"],
   ];
 
   for (const [name, table, command, clause] of policies) {
@@ -648,15 +674,17 @@ async function upsertStoragePolicies(client) {
     using (bucket_id = 'product-images');
 
     drop policy if exists product_images_insert_mvp on storage.objects;
-    create policy product_images_insert_mvp
+    drop policy if exists product_images_insert_admin on storage.objects;
+    create policy product_images_insert_admin
     on storage.objects for insert
-    to anon, authenticated
+    to authenticated
     with check (bucket_id = 'product-images');
 
     drop policy if exists product_images_update_mvp on storage.objects;
-    create policy product_images_update_mvp
+    drop policy if exists product_images_update_admin on storage.objects;
+    create policy product_images_update_admin
     on storage.objects for update
-    to anon, authenticated
+    to authenticated
     using (bucket_id = 'product-images')
     with check (bucket_id = 'product-images');
   `);

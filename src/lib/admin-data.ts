@@ -460,15 +460,12 @@ export async function listAdminProducts(): Promise<AdminProduct[]> {
   if (error) throw error;
   const productIds = (data ?? []).map((row) => String(row.id));
   const variantsByProductId = await listVariantsByProductId(productIds);
-  return mergeWithSeedProducts(
-    (data ?? [])
-      .filter((row) => validCategoryKeys.has(row.category))
-      .map((row) => productFromRow(row, variantsByProductId.get(row.id) ?? []))
-      .filter(
-        (product) => !replacedSeedProductIds.has(product.id) && !deletedProductIds.has(product.id),
-      ),
-    deletedProductIds,
-  );
+  return (data ?? [])
+    .filter((row) => validCategoryKeys.has(row.category))
+    .map((row) => productFromRow(row, variantsByProductId.get(row.id) ?? []))
+    .filter(
+      (product) => !replacedSeedProductIds.has(product.id) && !deletedProductIds.has(product.id),
+    );
 }
 
 export async function upsertAdminProduct(product: AdminProduct): Promise<AdminProduct> {
@@ -533,11 +530,7 @@ export async function listAdminCategories(): Promise<AdminCategory[]> {
   }
 
   const remoteCategories = (data ?? []).map(categoryFromRow);
-  const remoteKeys = new Set(remoteCategories.map((category) => category.key));
-  return [
-    ...remoteCategories,
-    ...adminCategories.filter((category) => !remoteKeys.has(category.key)),
-  ];
+  return remoteCategories;
 }
 
 export async function upsertAdminCategory(category: AdminCategory): Promise<AdminCategory> {

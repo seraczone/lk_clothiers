@@ -4,6 +4,7 @@ import { useCart } from "@/lib/cart";
 import { productById, ngn } from "@/lib/catalog";
 import { checkoutWhatsAppUrl } from "@/lib/whatsapp";
 import { useReveal } from "@/hooks/use-reveal";
+import { fallbackImageForProduct, handleImageFallback } from "@/lib/product-images";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({ meta: [{ title: "Cart - LK Clothiers" }] }),
@@ -42,6 +43,7 @@ function CartPage() {
               const image = it.image ?? p?.image;
               const unitPrice = it.variantPrice ?? it.price ?? p?.price ?? 0;
               if (!name || !image) return null;
+              const fallbackImage = fallbackImageForProduct(p ?? { id: it.id, category: "" });
               const variantLabel =
                 it.variantType && it.variantValue ? `${it.variantType}: ${it.variantValue}` : "";
               return (
@@ -55,7 +57,12 @@ function CartPage() {
                     params={{ id: it.id }}
                     className="block aspect-[4/5] overflow-hidden bg-[color:var(--cream)]"
                   >
-                    <img src={image} alt={name} className="w-full h-full object-cover" />
+                    <img
+                      src={image}
+                      alt={name}
+                      onError={(event) => handleImageFallback(event, fallbackImage)}
+                      className="w-full h-full object-cover"
+                    />
                   </Link>
                   <div>
                     <Link

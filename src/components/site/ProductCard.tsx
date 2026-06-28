@@ -6,6 +6,7 @@ import { ngn, type Product } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 import { productWhatsAppUrl } from "@/lib/whatsapp";
 import { getProductReviewSummary, ratingLabel } from "@/lib/reviews";
+import { fallbackImageForProduct, handleImageFallback } from "@/lib/product-images";
 
 export function ProductCard({
   p,
@@ -28,6 +29,7 @@ export function ProductCard({
   const defaultSize = p.sizes[0];
   const defaultColor = p.colors[0];
   const reviewSummary = getProductReviewSummary(p);
+  const fallbackImage = fallbackImageForProduct(p);
   const variants = p.useVariants ? (p.variants ?? []) : [];
   const defaultVariant = variants.find((variant) => variant.stock > 0) ?? variants[0];
   const displayPrice = defaultVariant?.price ?? p.price;
@@ -102,7 +104,13 @@ export function ProductCard({
         params={{ id: p.id }}
         className="block relative aspect-[4/5] overflow-hidden bg-[color:var(--cream)] mb-3"
       >
-        <img src={p.image} alt={p.name} loading="lazy" className="w-full h-full object-contain" />
+        <img
+          src={p.image}
+          alt={p.name}
+          loading="lazy"
+          onError={(event) => handleImageFallback(event, fallbackImage)}
+          className="w-full h-full object-contain"
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-foreground/45 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         {p.tag && (
           <span className="absolute top-3 left-3 bg-background/90 px-2.5 py-1 text-[10px] uppercase tracking-[0.2em]">

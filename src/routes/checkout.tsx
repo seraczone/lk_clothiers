@@ -6,6 +6,7 @@ import { productById, ngn } from "@/lib/catalog";
 import { decrementProductStock } from "@/lib/admin-data";
 import { checkoutWhatsAppUrl } from "@/lib/whatsapp";
 import { useReveal } from "@/hooks/use-reveal";
+import { fallbackImageForProduct, handleImageFallback } from "@/lib/product-images";
 import {
   buildAdminNotificationBody,
   buildCustomerEmailBody,
@@ -285,6 +286,7 @@ function CheckoutPage() {
             const image = it.image ?? p?.image;
             const unitPrice = it.variantPrice ?? it.price ?? p?.price ?? 0;
             if (!name || !image) return null;
+            const fallbackImage = fallbackImageForProduct(p ?? { id: it.id, category: "" });
             const variantLabel =
               it.variantType && it.variantValue ? `${it.variantType}: ${it.variantValue}` : "";
             return (
@@ -292,7 +294,12 @@ function CheckoutPage() {
                 key={`${it.id}-${it.size}-${it.color}-${it.variantId ?? ""}`}
                 className="flex gap-3 text-sm"
               >
-                <img src={image} alt="" className="w-14 h-16 object-cover" />
+                <img
+                  src={image}
+                  alt=""
+                  onError={(event) => handleImageFallback(event, fallbackImage)}
+                  className="w-14 h-16 object-cover"
+                />
                 <div className="flex-1">
                   <p className="font-display">{name}</p>
                   <p className="text-xs text-muted-foreground">
