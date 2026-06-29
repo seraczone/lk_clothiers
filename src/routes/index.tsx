@@ -4,9 +4,9 @@ import amaraPrintDressFront from "@/assets/amara-print-dress-front.png";
 import heroImg from "@/assets/hero-collection.png";
 import { ProductCard } from "@/components/site/ProductCard";
 import { useSiteContent } from "@/hooks/use-site-content";
+import { useStoreCategories } from "@/hooks/use-store-categories";
 import { useStoreProducts } from "@/hooks/use-store-products";
-import type { AdminProduct, ContentState } from "@/lib/admin-data";
-import { categories } from "@/lib/catalog";
+import type { AdminCategory, AdminProduct, ContentState } from "@/lib/admin-data";
 import { genericWhatsAppUrl, WHATSAPP_DISPLAY } from "@/lib/whatsapp";
 import atelierBoardroomWeekend from "@/assets/atelier-boardroom-weekend.mp4";
 import atelierGirlsEid from "@/assets/atelier-girls-eid.mp4";
@@ -226,7 +226,15 @@ function Marquee({ content }: { content: ContentState }) {
   );
 }
 
-function Categories({ content }: { content: ContentState }) {
+function Categories({
+  content,
+  categories,
+}: {
+  content: ContentState;
+  categories: AdminCategory[];
+}) {
+  if (categories.length === 0) return null;
+
   return (
     <section className="mx-auto max-w-[1280px] px-6 py-18 lg:px-12 lg:py-24">
       <div className="mb-10 flex items-end justify-between reveal">
@@ -448,7 +456,15 @@ function Testimonials({ content }: { content: ContentState }) {
   );
 }
 
-function Instagram({ content }: { content: ContentState }) {
+function Instagram({
+  content,
+  categories,
+}: {
+  content: ContentState;
+  categories: AdminCategory[];
+}) {
+  if (categories.length === 0) return null;
+
   const imgs = categories.slice(0, 6).map((c) => c.image);
   const instagramUrl = "https://instagram.com/lk_clothiers";
   return (
@@ -570,6 +586,7 @@ function VisitStore({ content }: { content: ContentState }) {
 
 function Index() {
   const content = useSiteContent();
+  const categories = useStoreCategories();
   const { products } = useStoreProducts();
   const revealKey = products.map((product) => product.id).join("|");
   const ref = useReveal(revealKey);
@@ -583,7 +600,7 @@ function Index() {
     <div ref={ref} className="scroll-smooth">
       <Hero content={content} />
       <Marquee content={content} />
-      <Categories content={content} />
+      <Categories content={content} categories={categories} />
       <ProductGrid
         items={arrivalProducts}
         eyebrow={content.home.newArrivalsEyebrow}
@@ -614,7 +631,7 @@ function Index() {
       <VideoLookbook content={content} />
       <Why content={content} />
       <Testimonials content={content} />
-      <Instagram content={content} />
+      <Instagram content={content} categories={categories} />
       <VisitStore content={content} />
     </div>
   );

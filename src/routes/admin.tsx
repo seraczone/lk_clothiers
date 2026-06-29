@@ -9,6 +9,7 @@ import {
   Edit3,
   Eye,
   FileText,
+  ImageUp,
   LayoutDashboard,
   LockKeyhole,
   LogOut,
@@ -572,6 +573,7 @@ function ProductsTab({
     image: "",
     tagline: "",
   });
+  const [isCategoryUploading, setIsCategoryUploading] = useState(false);
   const [mutationError, setMutationError] = useState("");
   const [mutationSuccess, setMutationSuccess] = useState("");
 
@@ -672,6 +674,30 @@ function ProductsTab({
     } catch (error) {
       setMutationError(error instanceof Error ? error.message : "Unable to save category.");
       setMutationSuccess("");
+    }
+  };
+
+  const uploadCategoryImage = async (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setMutationError("Choose a valid category image file.");
+      setMutationSuccess("");
+      return;
+    }
+
+    setIsCategoryUploading(true);
+    setMutationError("");
+    setMutationSuccess("");
+    try {
+      const folder = slugify(categoryDraft.key || categoryDraft.name) || "category";
+      const uploadedUrl = await uploadProductImage(file, `category-${folder}`);
+      setCategoryDraft((current) => ({ ...current, image: uploadedUrl }));
+      setMutationSuccess("Category image uploaded. Save category to persist it.");
+    } catch (error) {
+      setMutationError(error instanceof Error ? error.message : "Unable to upload category image.");
+      setMutationSuccess("");
+    } finally {
+      setIsCategoryUploading(false);
     }
   };
 
@@ -796,11 +822,41 @@ function ProductsTab({
           />
           <button
             type="submit"
-            className="mt-5 inline-flex h-11 items-center justify-center rounded-[6px] bg-foreground px-4 text-xs uppercase tracking-[0.18em] text-background transition-colors hover:bg-[color:var(--accent)]"
+            disabled={isCategoryUploading}
+            className="mt-5 inline-flex h-11 items-center justify-center rounded-[6px] bg-foreground px-4 text-xs uppercase tracking-[0.18em] text-background transition-colors hover:bg-[color:var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             Save Category
           </button>
         </form>
+        <div className="mt-4 grid gap-3 rounded-[8px] border border-border bg-[color:var(--cream)] p-4 md:grid-cols-[120px_1fr]">
+          {categoryDraft.image.trim() ? (
+            <img
+              src={categoryDraft.image}
+              alt={categoryDraft.name ? `${categoryDraft.name} category preview` : "Category preview"}
+              className="h-28 w-full rounded-[6px] border border-border bg-background object-contain"
+            />
+          ) : (
+            <div className="flex h-28 w-full items-center justify-center rounded-[6px] border border-dashed border-border bg-background text-xs uppercase tracking-[0.16em] text-muted-foreground">
+              No image
+            </div>
+          )}
+          <div className="flex flex-col justify-center gap-3">
+            <label className="inline-flex h-11 w-fit cursor-pointer items-center gap-2 rounded-[6px] border border-border bg-background px-4 text-xs uppercase tracking-[0.18em] transition-colors hover:border-foreground has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60">
+              <ImageUp size={15} />
+              {isCategoryUploading ? "Uploading..." : "Upload Image"}
+              <input
+                type="file"
+                accept="image/*"
+                disabled={isCategoryUploading}
+                className="sr-only"
+                onChange={(event) => uploadCategoryImage(event.target.files?.[0])}
+              />
+            </label>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Upload fills the Image URL field. Save the category after upload so it persists in Supabase.
+            </p>
+          </div>
+        </div>
         <div className="mt-4 flex flex-wrap gap-2">
           {categories.map((item) => (
             <span
