@@ -144,16 +144,18 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const [showPreloader, setShowPreloader] = useState(false);
+  const [showPreloader, setShowPreloader] = useState(true);
 
   useEffect(() => {
     const storageKey = window.location.pathname.startsWith("/admin")
       ? "lk_admin_preloader_seen"
       : "lk_site_preloader_seen";
-    if (window.sessionStorage.getItem(storageKey) === "true") return;
+    if (window.sessionStorage.getItem(storageKey) === "true") {
+      setShowPreloader(false);
+      return;
+    }
 
     window.sessionStorage.setItem(storageKey, "true");
-    setShowPreloader(true);
     document.body.classList.add("lk-preloader-active");
     const timer = window.setTimeout(() => {
       setShowPreloader(false);
