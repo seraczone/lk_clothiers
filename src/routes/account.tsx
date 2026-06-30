@@ -111,6 +111,7 @@ function AccountPage() {
                       <img
                         src={p.image}
                         alt={p.name}
+                        loading="lazy"
                         onError={(event) => handleImageFallback(event, fallbackImageForProduct(p))}
                         className="w-full h-full object-cover"
                       />

@@ -140,13 +140,28 @@ function VideoLookbook({ content }: { content: ContentState }) {
 function useReveal(observeKey = "") {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const els = ref.current?.querySelectorAll<HTMLElement>(".reveal") ?? [];
+    const els = Array.from(ref.current?.querySelectorAll<HTMLElement>(".reveal") ?? []);
+    const revealVisibleElements = () => {
+      els.forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        if (rect.top < window.innerHeight * 0.96 && rect.bottom > 0) {
+          el.classList.add("is-in");
+        }
+      });
+    };
     const io = new IntersectionObserver(
       (entries) => entries.forEach((e) => e.isIntersecting && e.target.classList.add("is-in")),
       { threshold: 0.12 },
     );
     els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
+    const frame = window.requestAnimationFrame(revealVisibleElements);
+    window.addEventListener("pageshow", revealVisibleElements);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("pageshow", revealVisibleElements);
+      io.disconnect();
+    };
   }, [observeKey]);
   return ref;
 }
@@ -165,13 +180,13 @@ function Hero({ content }: { content: ContentState }) {
       <div className="relative z-10 flex items-end lg:items-center min-h-[90svh] px-6 lg:px-12 pb-16 lg:pb-0">
         <div className="hero-fade-text max-w-xl">
           <p className="eyebrow mb-6 text-white/80">{content.home.heroEyebrow}</p>
-          <h1 className="font-[var(--font-hero)] text-4xl font-semibold leading-[1.08] text-white md:text-5xl lg:text-6xl">
+          <h1 className="hero-headline text-3xl leading-[1.16] text-white sm:text-4xl md:text-[2.8rem] lg:text-5xl">
             {content.home.heroLineOne}
             <br />
             <em className="italic text-[color:var(--accent)]">{content.home.heroAccent}</em>{" "}
             {content.home.heroLineTwo}
           </h1>
-          <p className="mt-2 font-[var(--font-body)] text-3xl font-medium italic leading-none md:text-4xl">
+          <p className="hero-made mt-3 text-xl italic leading-none text-white md:text-2xl">
             <span className="text-[color:var(--accent)]">Made</span>{" "}
             <span className="text-white">for you.</span>
           </p>
@@ -317,7 +332,7 @@ function ProductGrid({
         </div>
         <div className={gridClass}>
           {items.map((p, i) => (
-            <ProductCard key={p.id} p={p} delay={i * 80} showWhatsApp={false} showDetails={false} />
+            <ProductCard key={p.id} p={p} delay={i * 80} showDetails={false} />
           ))}
         </div>
       </div>
@@ -617,13 +632,7 @@ function Index() {
         </div>
         <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4 lg:gap-6">
           {bestSellerProducts.map((p, i) => (
-            <ProductCard
-              key={p.id}
-              p={p}
-              delay={i * 100}
-              showWhatsApp={false}
-              showDetails={false}
-            />
+            <ProductCard key={p.id} p={p} delay={i * 100} showDetails={false} />
           ))}
         </div>
       </section>

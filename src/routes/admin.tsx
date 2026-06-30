@@ -833,6 +833,7 @@ function ProductsTab({
             <img
               src={categoryDraft.image}
               alt={categoryDraft.name ? `${categoryDraft.name} category preview` : "Category preview"}
+              loading="lazy"
               className="h-28 w-full rounded-[6px] border border-border bg-background object-contain"
             />
           ) : (
@@ -906,6 +907,7 @@ function ProductsTab({
                       <img
                         src={product.image}
                         alt=""
+                        loading="lazy"
                         className="h-14 w-11 rounded-[4px] object-cover"
                       />
                       <div>
@@ -1339,6 +1341,7 @@ function ProductEditor({
                 <img
                   src={draft.image || products[0]?.image}
                   alt=""
+                  loading="lazy"
                   className="h-32 w-full rounded-[6px] object-cover md:w-28"
                 />
                 <div className="flex flex-col justify-center gap-3">
@@ -1413,7 +1416,7 @@ function ProductEditor({
                           draft.image === url ? "border-[color:var(--accent)]" : "border-border"
                         }`}
                       >
-                        <img src={url} alt="" className="h-32 w-full object-cover" />
+                        <img src={url} alt="" loading="lazy" className="h-32 w-full object-cover" />
                         <div className="grid grid-cols-2 border-t border-border text-[10px] uppercase tracking-[0.14em]">
                           <button
                             type="button"
@@ -1571,6 +1574,7 @@ function ProductEditor({
               <img
                 src={draft.image || products[0]?.image}
                 alt=""
+                loading="lazy"
                 className="h-24 w-20 rounded-[6px] object-cover"
               />
               <div>

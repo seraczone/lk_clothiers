@@ -4,19 +4,16 @@ import { useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
 import { ngn, type Product } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
-import { productWhatsAppUrl } from "@/lib/whatsapp";
 import { getProductReviewSummary, ratingLabel } from "@/lib/reviews";
 import { fallbackImageForProduct, handleImageFallback } from "@/lib/product-images";
 
 export function ProductCard({
   p,
   delay = 0,
-  showWhatsApp = true,
   showDetails = true,
 }: {
   p: Product;
   delay?: number;
-  showWhatsApp?: boolean;
   showDetails?: boolean;
 }) {
   const { add, items, remove } = useCart();
@@ -33,9 +30,6 @@ export function ProductCard({
   const variants = p.useVariants ? (p.variants ?? []) : [];
   const defaultVariant = variants.find((variant) => variant.stock > 0) ?? variants[0];
   const displayPrice = defaultVariant?.price ?? p.price;
-  const variantLabel = defaultVariant
-    ? `${defaultVariant.variantType}: ${defaultVariant.variantValue}`
-    : "";
   const isInCart = items.some(
     (item) =>
       item.id === p.id &&
@@ -167,16 +161,6 @@ export function ProductCard({
           </Link>
         )}
       </div>
-      {showWhatsApp && (
-        <a
-          href={productWhatsAppUrl(p.name, displayPrice, p.colors[0], p.sizes[0], 1, variantLabel)}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-2 min-h-10 rounded-[6px] border border-[color:var(--accent)]/70 bg-background/70 px-2 py-2.5 text-center text-[9px] font-medium uppercase tracking-[0.14em] text-[color:var(--accent)] transition-colors hover:bg-[color:var(--accent)] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--accent)] sm:px-3 sm:text-[10px] sm:tracking-[0.2em]"
-        >
-          WhatsApp Checkout
-        </a>
-      )}
     </div>
   );
 }

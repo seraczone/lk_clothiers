@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import logo from "@/assets/lk-logo.png";
+import footerLogo from "@/assets/lk-footer-logo.png";
 import { useReveal } from "@/hooks/use-reveal";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { categories } from "@/lib/catalog";
@@ -19,9 +19,9 @@ export function Footer() {
           <div className="md:col-span-2">
             <Link to="/" aria-label="LK Clothiers home" className="inline-flex">
               <img
-                src={logo}
+                src={footerLogo}
                 alt="LK Clothiers"
-                className="h-32 w-72 object-contain brightness-125 contrast-125"
+                className="h-36 w-72 object-contain"
               />
             </Link>
             <p className="mt-4 text-background/60 max-w-sm text-sm leading-relaxed">

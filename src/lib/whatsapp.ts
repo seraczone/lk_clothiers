@@ -5,6 +5,15 @@ import { deliveryMethodLabels, type DeliveryMethod } from "./orders";
 export const WHATSAPP_DISPLAY = "+234 817 195 0268";
 const WHATSAPP_PHONE = "2348171950268";
 export const WHATSAPP_BASE = `https://api.whatsapp.com/send?phone=${WHATSAPP_PHONE}`;
+const PAYMENT_BANK_NAME =
+  (import.meta.env.VITE_PAYMENT_BANK_NAME as string | undefined)?.trim() || "Moniepoint";
+const PAYMENT_ACCOUNT_NAME =
+  (import.meta.env.VITE_PAYMENT_ACCOUNT_NAME as string | undefined)?.trim() || "LkClothiers";
+const PAYMENT_ACCOUNT_NUMBER =
+  (import.meta.env.VITE_PAYMENT_ACCOUNT_NUMBER as string | undefined)?.trim() || "5775644823";
+const PICKUP_ADDRESS =
+  (import.meta.env.VITE_PICKUP_ADDRESS as string | undefined)?.trim() ||
+  "Block C, Suite 13 & 14, H & A Plaza, Wuye, Abuja FCT, Nigeria";
 
 export function whatsappUrl(message: string) {
   return `${WHATSAPP_BASE}&text=${encodeURIComponent(message)}`;
@@ -28,7 +37,7 @@ export function productWhatsAppUrl(
       "Hi LK Clothiers, I would like to checkout with this piece:",
       `${productName} (${optionLabel}) x${qty}`,
       `Price: ${ngn(price * qty)}`,
-      "Please confirm availability, payment details, and delivery arrangements.",
+      "Please send the payment details to complete this order.",
     ].join("\n"),
   );
 }
@@ -39,6 +48,7 @@ export function checkoutWhatsAppUrl(
   deliveryMethod?: DeliveryMethod,
   deliveryAddress?: string,
   discount = 0,
+  customer?: { fullName?: string; phone?: string },
 ) {
   const total = subtotal - discount;
   const lines = items
@@ -61,9 +71,16 @@ export function checkoutWhatsAppUrl(
     `Subtotal: ${ngn(subtotal)}`,
     discount > 0 ? `Discount: -${ngn(discount)}` : "Discount: NGN 0",
     `Final order total: ${ngn(total)}`,
+    customer?.fullName ? `Customer name: ${customer.fullName}` : "",
+    customer?.phone ? `Phone: ${customer.phone}` : "",
     deliveryMethod ? `Delivery method: ${deliveryMethodLabels[deliveryMethod]}` : "",
-    deliveryAddress ? `Delivery address: ${deliveryAddress}` : "",
-    "Please confirm availability, payment details, and any delivery arrangements.",
+    deliveryMethod === "pickup" ? `Pickup address: ${PICKUP_ADDRESS}` : "",
+    deliveryMethod === "home" && deliveryAddress ? `Delivery address: ${deliveryAddress}` : "",
+    "Payment details:",
+    `Bank: ${PAYMENT_BANK_NAME}`,
+    `Account Name: ${PAYMENT_ACCOUNT_NAME}`,
+    `Account Number: ${PAYMENT_ACCOUNT_NUMBER}`,
+    "Kindly share receipt after payment.",
   ]
     .filter(Boolean)
     .join("\n");

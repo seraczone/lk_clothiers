@@ -92,7 +92,8 @@
   --ink: oklch(0.22 0.04 50);
   --font-display: "Cormorant Garamond", "Playfair Display", Georgia, serif;
   --font-body: "Neue Haas Grotesk", "Inter", "Helvetica Neue", sans-serif;
-  --font-hero: "Canela", "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  --font-hero: "Montserrat", "Inter", "Helvetica Neue", sans-serif;
+  --font-made: "Playfair Display", Georgia, serif;
   --font-cursive: "Dancing Script", "Segoe Script", cursive;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -259,6 +260,16 @@
   }
   .hero-fade-text > :nth-child(5) {
     animation-delay: 420ms;
+  }
+
+  .hero-headline {
+    font-family: "Montserrat", "Inter", "Helvetica Neue", sans-serif;
+    font-weight: 500;
+  }
+
+  .hero-made {
+    font-family: "Montserrat", "Inter", "Helvetica Neue", sans-serif;
+    font-weight: 500;
   }
 
   .reveal {

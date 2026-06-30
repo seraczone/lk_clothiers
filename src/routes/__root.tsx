@@ -118,7 +118,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500;600&family=Poppins:wght@400;500;600&family=Dancing+Script:wght@400;500&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500;600&family=Poppins:wght@400;500;600&family=Montserrat:wght@500;700&family=Playfair+Display:ital,wght@1,400;1,500;1,600&family=Dancing+Script:wght@400;500&display=swap",
       },
     ],
   }),
@@ -144,9 +144,16 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const [showPreloader, setShowPreloader] = useState(true);
+  const [showPreloader, setShowPreloader] = useState(false);
 
   useEffect(() => {
+    const storageKey = window.location.pathname.startsWith("/admin")
+      ? "lk_admin_preloader_seen"
+      : "lk_site_preloader_seen";
+    if (window.sessionStorage.getItem(storageKey) === "true") return;
+
+    window.sessionStorage.setItem(storageKey, "true");
+    setShowPreloader(true);
     document.body.classList.add("lk-preloader-active");
     const timer = window.setTimeout(() => {
       setShowPreloader(false);

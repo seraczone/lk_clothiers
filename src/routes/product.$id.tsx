@@ -5,7 +5,6 @@ import type { FormEvent } from "react";
 import type { CSSProperties } from "react";
 import { productById, ngn, type Product } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
-import { productWhatsAppUrl } from "@/lib/whatsapp";
 import { useReveal } from "@/hooks/use-reveal";
 import { seedProducts } from "@/lib/admin-data";
 import { useStoreProducts } from "@/hooks/use-store-products";
@@ -98,7 +97,10 @@ function ProductPage() {
             "")
         : "",
     );
-    setActive((product.gallery ?? [product.image])[0] ?? "");
+    setActive(
+      (product.gallery ?? [product.image]).find((image) => image.trim()) ??
+        fallbackImageForProduct(product),
+    );
   }, [product]);
 
   useEffect(() => {
@@ -129,16 +131,14 @@ function ProductPage() {
     );
   }
 
-  const gallery = product.gallery ?? [product.image];
   const fallbackImage = fallbackImageForProduct(product);
+  const gallery = (product.gallery ?? [product.image]).filter((image) => image.trim());
+  const activeImage = active || gallery[0] || fallbackImage;
   const variants = product.useVariants ? (product.variants ?? []) : [];
   const selectedVariant =
     variants.find((variant) => variant.id === selectedVariantId) ?? variants[0];
   const selectedPrice = selectedVariant?.price ?? product.price;
   const selectedStock = selectedVariant?.stock ?? product.stock;
-  const selectedVariantLabel = selectedVariant
-    ? `${selectedVariant.variantType}: ${selectedVariant.variantValue}`
-    : "";
   const inStock = selectedStock > 0;
   const seedReviews = getSeedReviews(product);
   const reviews = [...storedReviews, ...seedReviews];
@@ -228,7 +228,7 @@ function ProductPage() {
             onClick={() => setZoom(true)}
           >
             <img
-              src={active}
+              src={activeImage}
               alt={product.name}
               onError={(event) => handleImageFallback(event, fallbackImage)}
               className="w-full h-full object-contain"
@@ -250,6 +250,7 @@ function ProductPage() {
                   <img
                     src={g}
                     alt=""
+                    loading="lazy"
                     onError={(event) => handleImageFallback(event, fallbackImage)}
                     className="w-full h-full object-contain"
                   />
@@ -388,28 +389,6 @@ function ProductPage() {
             </button>
           </div>
 
-          {inStock ? (
-            <a
-              href={productWhatsAppUrl(
-                product.name,
-                selectedPrice,
-                color,
-                size,
-                qty,
-                selectedVariantLabel,
-              )}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-3 block text-center border border-[color:var(--accent)] text-[color:var(--accent)] px-7 py-4 text-xs uppercase tracking-[0.25em] hover:bg-[color:var(--accent)] hover:text-white transition-colors"
-            >
-              Checkout on WhatsApp
-            </a>
-          ) : (
-            <span className="mt-3 block cursor-not-allowed border border-border px-7 py-4 text-center text-xs uppercase tracking-[0.25em] text-muted-foreground">
-              Checkout Unavailable
-            </span>
-          )}
-
           <ul className="mt-10 space-y-3 text-xs text-muted-foreground border-t border-border pt-6">
             <li>- Free delivery in Abuja over NGN 100,000</li>
             <li>- Nationwide shipping 2-5 days</li>
@@ -456,6 +435,7 @@ function ProductPage() {
                     <img
                       src={p.image}
                       alt={p.name}
+                      loading="lazy"
                       onError={(event) =>
                         handleImageFallback(event, fallbackImageForProduct(p))
                       }
@@ -479,7 +459,7 @@ function ProductPage() {
           onClick={() => setZoom(false)}
         >
           <img
-            src={active}
+            src={activeImage}
             alt={product.name}
             onError={(event) => handleImageFallback(event, fallbackImage)}
             className="max-h-full max-w-full object-contain"

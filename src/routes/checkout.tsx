@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import type { CSSProperties, FormEvent, InputHTMLAttributes } from "react";
 import { useCart } from "@/lib/cart";
@@ -18,6 +18,8 @@ import {
   type SavedOrder,
 } from "@/lib/orders";
 
+type CheckoutMethod = "whatsapp" | "online";
+
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout - LK Clothiers" }] }),
   component: CheckoutPage,
@@ -26,15 +28,25 @@ export const Route = createFileRoute("/checkout")({
 function CheckoutPage() {
   const { items, subtotal, clear } = useCart();
   const navigate = useNavigate();
+  const method: CheckoutMethod =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("method") === "online"
+      ? "online"
+      : "whatsapp";
+  const isWhatsAppCheckout = method === "whatsapp";
   const [payment, setPayment] = useState<"paystack" | "flutterwave" | "transfer">("paystack");
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("pickup");
   const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [whatsappCustomer, setWhatsappCustomer] = useState({
+    fullName: "",
+    phone: "",
+  });
   const [customer, setCustomer] = useState<CheckoutCustomer>({
     firstName: "",
     lastName: "",
     email: "",
     phone: "",
-    city: "",
+    city: "Abuja",
     state: "FCT - Abuja",
   });
   const [confirmedOrder, setConfirmedOrder] = useState<SavedOrder | null>(null);
@@ -49,6 +61,10 @@ function CheckoutPage() {
     deliveryMethod,
     deliveryMethod === "home" ? deliveryAddress : undefined,
     discount,
+    {
+      fullName: whatsappCustomer.fullName.trim(),
+      phone: whatsappCustomer.phone.trim(),
+    },
   );
   const ref = useReveal<HTMLFormElement>();
 
@@ -97,6 +113,21 @@ function CheckoutPage() {
     }
   };
 
+  const openWhatsAppCheckout = () => {
+    setError("");
+    if (!whatsappCustomer.fullName.trim() || !whatsappCustomer.phone.trim()) {
+      setError("Please enter your full name and phone number before checking out on WhatsApp.");
+      return;
+    }
+    if (deliveryMethod === "home" && !deliveryAddress.trim()) {
+      setError("Please enter a delivery address before checking out on WhatsApp.");
+      return;
+    }
+
+    const popup = window.open(whatsappCheckout, "_blank", "noopener,noreferrer");
+    if (!popup) window.location.href = whatsappCheckout;
+  };
+
   if (done) {
     const pickup = confirmedOrder?.deliveryMethod === "pickup";
     return (
@@ -123,47 +154,97 @@ function CheckoutPage() {
   return (
     <form
       ref={ref}
-      onSubmit={submit}
+      onSubmit={(event) => {
+        if (isWhatsAppCheckout) {
+          event.preventDefault();
+          openWhatsAppCheckout();
+          return;
+        }
+        submit(event);
+      }}
       className="px-6 lg:px-12 py-16 max-w-[1200px] mx-auto grid lg:grid-cols-[1fr_400px] gap-12"
     >
       <div className="space-y-10">
         <div className="reveal" style={{ "--reveal-x": "-30px" } as CSSProperties}>
-          <p className="eyebrow mb-3">Step 01</p>
-          <h2 className="font-display text-3xl mb-6">Delivery Information</h2>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Input
-              label="First name"
-              value={customer.firstName}
-              onChange={(event) => setCustomer({ ...customer, firstName: event.target.value })}
-            />
-            <Input
-              label="Last name"
-              value={customer.lastName}
-              onChange={(event) => setCustomer({ ...customer, lastName: event.target.value })}
-            />
-            <Input
-              label="Email"
-              type="email"
-              value={customer.email}
-              onChange={(event) => setCustomer({ ...customer, email: event.target.value })}
-            />
-            <Input
-              label="Phone"
-              type="tel"
-              value={customer.phone}
-              onChange={(event) => setCustomer({ ...customer, phone: event.target.value })}
-            />
-            <Input
-              label="City"
-              value={customer.city}
-              onChange={(event) => setCustomer({ ...customer, city: event.target.value })}
-            />
-            <Input
-              label="State"
-              value={customer.state}
-              onChange={(event) => setCustomer({ ...customer, state: event.target.value })}
-            />
+          <p className="eyebrow mb-3">Checkout Method</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Link
+              to="/checkout?method=whatsapp"
+              className={`border px-5 py-4 text-xs uppercase tracking-[0.2em] transition-colors ${
+                isWhatsAppCheckout
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border hover:border-foreground"
+              }`}
+            >
+              Checkout with WhatsApp
+            </Link>
+            <Link
+              to="/checkout?method=online"
+              className={`border px-5 py-4 text-xs uppercase tracking-[0.2em] transition-colors ${
+                !isWhatsAppCheckout
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border hover:border-foreground"
+              }`}
+            >
+              Pay Online
+            </Link>
           </div>
+        </div>
+
+        <div className="reveal" style={{ "--reveal-x": "-30px" } as CSSProperties}>
+          <p className="eyebrow mb-3">Step 01</p>
+          <h2 className="font-display text-3xl mb-6">
+            {isWhatsAppCheckout ? "WhatsApp Contact" : "Delivery Information"}
+          </h2>
+          {isWhatsAppCheckout ? (
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Input
+                label="Full name"
+                value={whatsappCustomer.fullName}
+                onChange={(event) =>
+                  setWhatsappCustomer({ ...whatsappCustomer, fullName: event.target.value })
+                }
+              />
+              <Input
+                label="Phone"
+                type="tel"
+                value={whatsappCustomer.phone}
+                onChange={(event) =>
+                  setWhatsappCustomer({ ...whatsappCustomer, phone: event.target.value })
+                }
+              />
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Input
+                label="First name"
+                value={customer.firstName}
+                onChange={(event) => setCustomer({ ...customer, firstName: event.target.value })}
+              />
+              <Input
+                label="Last name"
+                value={customer.lastName}
+                onChange={(event) => setCustomer({ ...customer, lastName: event.target.value })}
+              />
+              <Input
+                label="Email"
+                type="email"
+                value={customer.email}
+                onChange={(event) => setCustomer({ ...customer, email: event.target.value })}
+              />
+              <Input
+                label="Phone"
+                type="tel"
+                value={customer.phone}
+                onChange={(event) => setCustomer({ ...customer, phone: event.target.value })}
+              />
+              <Input
+                label="State"
+                value={customer.state}
+                onChange={(event) => setCustomer({ ...customer, state: event.target.value })}
+              />
+            </div>
+          )}
         </div>
 
         <div className="reveal" style={{ "--reveal-x": "-18px" } as CSSProperties}>
@@ -236,42 +317,46 @@ function CheckoutPage() {
           </div>
         </div>
 
-        <div className="reveal" style={{ "--reveal-x": "-18px" } as CSSProperties}>
-          <p className="eyebrow mb-3">Step 03</p>
-          <h2 className="font-display text-3xl mb-6">Payment Method</h2>
-          <div className="space-y-3">
-            {[
-              { key: "paystack", label: "Paystack", desc: "Cards, bank transfer, USSD." },
-              {
-                key: "flutterwave",
-                label: "Flutterwave",
-                desc: "Cards and mobile money across Africa.",
-              },
-              {
-                key: "transfer",
-                label: "Bank Transfer",
-                desc: "Direct transfer to our LK account.",
-              },
-            ].map((opt) => (
-              <label
-                key={opt.key}
-                className={`flex items-start gap-4 border p-5 cursor-pointer transition-colors ${payment === opt.key ? "border-foreground" : "border-border"}`}
-              >
-                <input
-                  type="radio"
-                  name="pay"
-                  checked={payment === opt.key}
-                  onChange={() => setPayment(opt.key as "paystack" | "flutterwave" | "transfer")}
-                  className="mt-1 accent-[color:var(--accent)]"
-                />
-                <div>
-                  <p className="font-display text-lg">{opt.label}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{opt.desc}</p>
-                </div>
-              </label>
-            ))}
+        {!isWhatsAppCheckout && (
+          <div className="reveal" style={{ "--reveal-x": "-18px" } as CSSProperties}>
+            <p className="eyebrow mb-3">Step 03</p>
+            <h2 className="font-display text-3xl mb-6">Payment Method</h2>
+            <div className="space-y-3">
+              {[
+                { key: "paystack", label: "Paystack", desc: "Cards, bank transfer, USSD." },
+                {
+                  key: "flutterwave",
+                  label: "Flutterwave",
+                  desc: "Cards and mobile money across Africa.",
+                },
+                {
+                  key: "transfer",
+                  label: "Bank Transfer",
+                  desc: "Direct transfer to our LK account.",
+                },
+              ].map((opt) => (
+                <label
+                  key={opt.key}
+                  className={`flex items-start gap-4 border p-5 cursor-pointer transition-colors ${payment === opt.key ? "border-foreground" : "border-border"}`}
+                >
+                  <input
+                    type="radio"
+                    name="pay"
+                    checked={payment === opt.key}
+                    onChange={() =>
+                      setPayment(opt.key as "paystack" | "flutterwave" | "transfer")
+                    }
+                    className="mt-1 accent-[color:var(--accent)]"
+                  />
+                  <div>
+                    <p className="font-display text-lg">{opt.label}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{opt.desc}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <aside
@@ -297,6 +382,7 @@ function CheckoutPage() {
                 <img
                   src={image}
                   alt=""
+                  loading="lazy"
                   onError={(event) => handleImageFallback(event, fallbackImage)}
                   className="w-14 h-16 object-cover"
                 />
@@ -332,27 +418,31 @@ function CheckoutPage() {
             <p className="mt-1 leading-relaxed">{deliveryAddress}</p>
           )}
         </div>
-        <a
-          href={whatsappCheckout}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(event) => {
-            event.preventDefault();
-            const popup = window.open(whatsappCheckout, "_blank", "noopener,noreferrer");
-            if (!popup) window.location.href = whatsappCheckout;
-          }}
-          className="mt-8 block w-full text-center bg-[color:var(--accent)] text-white px-7 py-4 text-xs uppercase tracking-[0.25em] hover:bg-foreground transition-colors"
-        >
-          Checkout on WhatsApp
-        </a>
+        <div className="mt-8 border-t border-border pt-5">
+          {isWhatsAppCheckout ? (
+            <a
+              href={whatsappCheckout}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(event) => {
+                event.preventDefault();
+                openWhatsAppCheckout();
+              }}
+              className="mt-3 block w-full text-center bg-[color:var(--accent)] px-7 py-4 text-xs uppercase tracking-[0.25em] text-white transition-colors hover:bg-foreground"
+            >
+              Checkout on WhatsApp
+            </a>
+          ) : (
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full border border-foreground px-7 py-4 text-xs uppercase tracking-[0.25em] transition-colors hover:bg-foreground hover:text-background disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isSubmitting ? "Preparing Payment" : "Pay Online"}
+            </button>
+          )}
+        </div>
         {error && <p className="mt-3 text-xs text-[color:var(--destructive)]">{error}</p>}
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="mt-3 w-full border border-foreground px-7 py-4 text-xs uppercase tracking-[0.25em] transition-colors hover:bg-foreground hover:text-background disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isSubmitting ? "Placing Order" : "Place Order"}
-        </button>
       </aside>
     </form>
   );

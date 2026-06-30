@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import type { CSSProperties } from "react";
 import { useCart } from "@/lib/cart";
 import { productById, ngn } from "@/lib/catalog";
-import { checkoutWhatsAppUrl } from "@/lib/whatsapp";
 import { useReveal } from "@/hooks/use-reveal";
 import { fallbackImageForProduct, handleImageFallback } from "@/lib/product-images";
 
@@ -14,7 +13,6 @@ export const Route = createFileRoute("/cart")({
 function CartPage() {
   const { items, remove, setQty, subtotal, count } = useCart();
   const ref = useReveal<HTMLDivElement>();
-  const whatsappCheckout = checkoutWhatsAppUrl(items, subtotal);
 
   return (
     <div ref={ref} className="px-6 lg:px-12 py-16 lg:py-20 max-w-[1200px] mx-auto">
@@ -60,6 +58,7 @@ function CartPage() {
                     <img
                       src={image}
                       alt={name}
+                      loading="lazy"
                       onError={(event) => handleImageFallback(event, fallbackImage)}
                       className="w-full h-full object-cover"
                     />
@@ -127,24 +126,17 @@ function CartPage() {
                 <dd className="tabular-nums">{ngn(subtotal)}</dd>
               </div>
             </dl>
-            <a
-              href={whatsappCheckout}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(event) => {
-                event.preventDefault();
-                const popup = window.open(whatsappCheckout, "_blank", "noopener,noreferrer");
-                if (!popup) window.location.href = whatsappCheckout;
-              }}
-              className="mt-8 block text-center bg-[color:var(--accent)] text-white px-7 py-4 text-xs uppercase tracking-[0.25em] hover:bg-foreground transition-colors"
-            >
-              Checkout on WhatsApp
-            </a>
             <Link
-              to="/checkout"
-              className="mt-3 block text-center border border-foreground px-7 py-4 text-xs uppercase tracking-[0.25em] hover:bg-foreground hover:text-background transition-colors"
+              to="/checkout?method=whatsapp"
+              className="mt-8 block text-center bg-[color:var(--accent)] px-7 py-4 text-xs uppercase tracking-[0.25em] text-white transition-colors hover:bg-foreground"
             >
-              Use Checkout Form
+              Checkout with WhatsApp
+            </Link>
+            <Link
+              to="/checkout?method=online"
+              className="mt-3 block text-center border border-foreground px-7 py-4 text-xs uppercase tracking-[0.25em] transition-colors hover:bg-foreground hover:text-background"
+            >
+              Pay Online
             </Link>
             <Link
               to="/shop"
