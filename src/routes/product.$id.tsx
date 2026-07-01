@@ -667,9 +667,8 @@ function ProductPage() {
           </div>
 
           <ul className="mt-10 space-y-3 text-xs text-muted-foreground border-t border-border pt-6">
-            <li>- Free delivery in Abuja over NGN 100,000</li>
-            <li>- Nationwide shipping 2-5 days</li>
-            <li>- Bespoke alterations available. Chat to our atelier.</li>
+            <li>- Delivery within Abuja takes 24-48hrs</li>
+            <li>- Nationwide shipping takes 2-5 days</li>
           </ul>
         </div>
       </section>
