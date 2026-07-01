@@ -112,14 +112,18 @@ export function ProductCard({
           className="w-full h-full object-contain"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-foreground/45 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-        {p.tag && (
-          <span className="absolute top-3 left-3 bg-background/90 px-2.5 py-1 text-[10px] uppercase tracking-[0.2em]">
-            {p.tag}
-          </span>
-        )}
-        {!inStock && (
-          <span className="absolute top-3 right-3 bg-background/90 px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-[color:var(--destructive)]">
-            Out
+        {(p.tag || !inStock) && (
+          <span className="absolute left-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-col items-start gap-1">
+            {p.tag && (
+              <span className="bg-background/90 px-2.5 py-1 text-[10px] uppercase tracking-[0.2em]">
+                {p.tag}
+              </span>
+            )}
+            {!inStock && (
+              <span className="whitespace-nowrap bg-background/95 px-2.5 py-1 text-[9px] uppercase tracking-[0.1em] text-[color:var(--destructive)] shadow-sm sm:text-[10px] sm:tracking-[0.14em]">
+                Out of Stock
+              </span>
+            )}
           </span>
         )}
         <span className="absolute bottom-3 left-3 right-3 translate-y-3 opacity-0 bg-background/90 px-3 py-2 text-center text-[10px] uppercase tracking-[0.2em] text-foreground transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">

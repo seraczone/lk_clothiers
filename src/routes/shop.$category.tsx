@@ -44,7 +44,7 @@ function CategoryPage() {
   if (!cat) return null;
   const isAdire = cat.key === "adire";
   const isBoys = cat.key === "boys";
-  const heroImage = isBoys ? (seedCategories.find((item) => item.key === "boys")?.image ?? cat.image) : cat.image;
+  const heroImage = cat.image;
 
   return (
     <div ref={ref}>

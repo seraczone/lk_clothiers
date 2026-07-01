@@ -316,6 +316,21 @@ function ProductPage() {
     );
   };
 
+  const selectGalleryImage = (image: string) => {
+    setActive(image);
+    const imageIndex = gallery.indexOf(image);
+    if (imageIndex >= 0) {
+      setGalleryStart(Math.min(Math.max(imageIndex - 2, 0), maxGalleryStart));
+    }
+  };
+
+  const shiftMainImage = (direction: -1 | 1) => {
+    if (gallery.length <= 1) return;
+    const currentIndex = Math.max(0, gallery.indexOf(activeImage));
+    const nextIndex = (currentIndex + direction + gallery.length) % gallery.length;
+    selectGalleryImage(gallery[nextIndex]);
+  };
+
   const handleColorSelect = (nextColor: string) => {
     setColor(nextColor);
     if (usesOptionVariants) {
@@ -339,11 +354,7 @@ function ProductPage() {
       findMappedColorImage(product.colorImages, nextColor) ?? findImageForColor(gallery, nextColor);
     if (!matchingImage) return;
 
-    const matchingIndex = gallery.indexOf(matchingImage);
-    setActive(matchingImage);
-    if (matchingIndex >= 0) {
-      setGalleryStart(Math.min(Math.max(matchingIndex - 2, 0), maxGalleryStart));
-    }
+    selectGalleryImage(matchingImage);
   };
 
   const handleSizeSelect = (nextSize: string) => {
@@ -423,6 +434,32 @@ function ProductPage() {
               onError={(event) => handleImageFallback(event, fallbackImage)}
               className="w-full h-full object-contain object-center"
             />
+            {gallery.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    shiftMainImage(-1);
+                  }}
+                  aria-label="Previous product image"
+                  className="absolute left-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center border border-border bg-background/90 text-foreground shadow-sm transition-colors hover:border-foreground sm:left-4 sm:h-11 sm:w-11"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    shiftMainImage(1);
+                  }}
+                  aria-label="Next product image"
+                  className="absolute right-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center border border-border bg-background/90 text-foreground shadow-sm transition-colors hover:border-foreground sm:right-4 sm:h-11 sm:w-11"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </>
+            )}
             {product.tag && (
               <span className="absolute top-4 left-4 bg-background/90 px-2.5 py-1 text-[10px] uppercase tracking-[0.2em]">
                 {product.tag}
@@ -447,7 +484,7 @@ function ProductPage() {
                   <button
                     key={`${g}-${galleryStart + i}`}
                     type="button"
-                    onClick={() => setActive(g)}
+                    onClick={() => selectGalleryImage(g)}
                     className={`aspect-[4/5] overflow-hidden border bg-[color:var(--cream)] p-1 ${activeImage === g ? "border-foreground" : "border-border"}`}
                   >
                     <img
