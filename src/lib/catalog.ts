@@ -100,6 +100,7 @@ export type Product = {
   category: CategoryKey;
   image: string;
   gallery?: string[];
+  colorImages?: Record<string, string>;
   sizes: string[];
   colors: string[];
   description: string;
@@ -110,7 +111,6 @@ export type Product = {
 export const categories: Category[] = [
   { key: "girls", name: "Girls", image: girlDresses, tagline: "Mini LK" },
   { key: "boys", name: "Boys", image: boysBlueKaftanHero, tagline: "Little gentlemen" },
-  { key: "shirt", name: "Shirt", image: linenLongShirtMint, tagline: "Tailored everyday shirts" },
   {
     key: "shirt-dress",
     name: "Shirt Dress",

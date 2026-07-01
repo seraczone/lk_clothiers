@@ -332,7 +332,7 @@ function ProductGrid({
         </div>
         <div className={gridClass}>
           {items.map((p, i) => (
-            <ProductCard key={p.id} p={p} delay={i * 80} showDetails={false} />
+            <ProductCard key={p.id} p={p} delay={i * 80} showDetails={false} showActions={false} />
           ))}
         </div>
       </div>
@@ -632,7 +632,7 @@ function Index() {
         </div>
         <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4 lg:gap-6">
           {bestSellerProducts.map((p, i) => (
-            <ProductCard key={p.id} p={p} delay={i * 100} showDetails={false} />
+            <ProductCard key={p.id} p={p} delay={i * 100} showDetails={false} showActions={false} />
           ))}
         </div>
       </section>

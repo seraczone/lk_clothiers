@@ -101,7 +101,7 @@ export function ProductCard({
         className="block relative aspect-[4/5] overflow-hidden bg-[color:var(--cream)] mb-3"
       >
         <img
-          src={p.image}
+          src={p.image || fallbackImage}
           alt={p.name}
           loading="lazy"
           onError={(event) => handleImageFallback(event, fallbackImage)}

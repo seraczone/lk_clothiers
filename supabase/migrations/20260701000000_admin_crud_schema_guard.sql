@@ -47,6 +47,7 @@ create table if not exists public.products (
   category text,
   image_url text,
   gallery_urls text[],
+  color_images jsonb not null default '{}'::jsonb,
   sizes text[] not null default '{}',
   colors text[] not null default '{}',
   description text not null default '',
@@ -64,6 +65,7 @@ alter table public.products add column if not exists use_variants boolean not nu
 alter table public.products add column if not exists category text;
 alter table public.products add column if not exists image_url text;
 alter table public.products add column if not exists gallery_urls text[];
+alter table public.products add column if not exists color_images jsonb not null default '{}'::jsonb;
 alter table public.products add column if not exists sizes text[] not null default '{}';
 alter table public.products add column if not exists colors text[] not null default '{}';
 alter table public.products add column if not exists description text not null default '';

@@ -73,6 +73,7 @@ const blankDraft = (): ProductDraft => ({
   gallery: [],
   sizes: "S, M, L, XL",
   colors: "Ivory",
+  colorImages: {},
   description: "",
   tag: "",
   bestSeller: false,
@@ -996,6 +997,8 @@ function ProductEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [galleryUrlInput, setGalleryUrlInput] = useState("");
+  const colorOptions = splitList(draft.colors);
+  const galleryOptions = normalizeGallery(draft.image, draft.gallery);
 
   useEffect(() => {
     if (categories.length === 0) return;
@@ -1005,6 +1008,19 @@ function ProductEditor({
 
   const updateDraft = <K extends keyof ProductDraft>(key: K, value: ProductDraft[K]) => {
     setDraft((current) => ({ ...current, [key]: value }));
+  };
+
+  const updateColorImage = (color: string, imageUrl: string) => {
+    setDraft((current) => {
+      const nextColorImages = { ...(current.colorImages ?? {}) };
+      const cleanUrl = imageUrl.trim();
+      if (cleanUrl) {
+        nextColorImages[color] = cleanUrl;
+      } else {
+        delete nextColorImages[color];
+      }
+      return { ...current, colorImages: nextColorImages };
+    });
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -1079,7 +1095,11 @@ function ProductEditor({
     }
     setIsSaving(true);
     try {
-      const gallery = normalizeGallery(imageUrl, draft.gallery);
+      const colorImages = normalizeProductColorImages(colorOptions, draft.colorImages);
+      const gallery = normalizeGallery(imageUrl, [
+        ...(draft.gallery ?? []),
+        ...Object.values(colorImages),
+      ]);
       await onSave({
         id: normalizedId,
         name: draft.name.trim(),
@@ -1089,8 +1109,9 @@ function ProductEditor({
         category: draft.category,
         image: imageUrl,
         gallery,
+        colorImages,
         sizes: splitList(draft.sizes),
-        colors: splitList(draft.colors),
+        colors: colorOptions,
         description: draft.description.trim(),
         tag: (draft.tag ?? "").trim() || undefined,
         bestSeller: draft.bestSeller,
@@ -1457,6 +1478,76 @@ function ProductEditor({
               value={draft.colors}
               onChange={(value) => updateDraft("colors", value)}
             />
+            {colorOptions.length > 0 && (
+              <div className="md:col-span-2">
+                <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Color images
+                </span>
+                <div className="rounded-[8px] border border-border bg-background p-4">
+                  <p className="mb-4 text-xs leading-relaxed text-muted-foreground">
+                    These rows are created from the Colors field. Assign the correct gallery image
+                    to each color so the storefront changes image when a customer selects a color.
+                  </p>
+                  <div className="space-y-3">
+                    {colorOptions.map((color) => {
+                      const selectedImage = draft.colorImages?.[color] ?? "";
+                      return (
+                        <div
+                          key={color}
+                          className="grid gap-3 rounded-[8px] border border-border bg-[color:var(--cream)] p-3 md:grid-cols-[120px_1fr]"
+                        >
+                          <div>
+                            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                              {color}
+                            </p>
+                            <div className="mt-2 aspect-[4/5] overflow-hidden rounded-[6px] bg-background">
+                              {selectedImage ? (
+                                <img
+                                  src={selectedImage}
+                                  alt=""
+                                  loading="lazy"
+                                  className="h-full w-full object-contain"
+                                />
+                              ) : (
+                                <div className="flex h-full items-center justify-center px-3 text-center text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                                  No image
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            <label className="block">
+                              <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                                Choose from gallery
+                              </span>
+                              <select
+                                value={selectedImage}
+                                onChange={(event) => updateColorImage(color, event.target.value)}
+                                className="h-10 w-full rounded-[6px] border border-border bg-background px-3 text-xs outline-none transition-colors focus:border-foreground"
+                              >
+                                <option value="">No color image</option>
+                                {galleryOptions.map((url, index) => (
+                                  <option key={`${url}-${index}`} value={url}>
+                                    Image {index + 1}
+                                    {draft.image === url ? " - Primary" : ""}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <input
+                              value={selectedImage}
+                              onChange={(event) => updateColorImage(color, event.target.value)}
+                              placeholder="Or paste an exact image URL for this color"
+                              className="h-10 w-full rounded-[6px] border border-border bg-background px-3 text-xs outline-none transition-colors focus:border-foreground"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
             <Field
               label="Merchandising tag"
               value={draft.tag ?? ""}
@@ -2233,6 +2324,17 @@ function productToDraft(product: AdminProduct | null): ProductDraft {
 function normalizeGallery(primaryImage: string, gallery: string[] | undefined) {
   const ordered = [primaryImage, ...(gallery ?? [])].map((item) => item.trim()).filter(Boolean);
   return Array.from(new Set(ordered));
+}
+
+function normalizeProductColorImages(
+  colors: string[],
+  colorImages: Record<string, string> | undefined,
+) {
+  return colors.reduce<Record<string, string>>((nextColorImages, color) => {
+    const image = colorImages?.[color]?.trim();
+    if (image) nextColorImages[color] = image;
+    return nextColorImages;
+  }, {});
 }
 
 function splitList(value: string) {

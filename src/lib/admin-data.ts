@@ -145,6 +145,7 @@ type ProductRow = {
   category: CategoryKey;
   image_url: string;
   gallery_urls: string[] | null;
+  color_images?: Record<string, string> | null;
   sizes: string[];
   colors: string[];
   description: string;
@@ -440,6 +441,7 @@ const replacedSeedProductIds = new Set([
 ]);
 const localStockKey = "lk_stock_overrides_v1";
 const deletedProductsKey = "lk_deleted_products_v1";
+const storefrontProductsCacheKey = "lk_storefront_products_v1";
 
 export async function listAdminProducts(): Promise<AdminProduct[]> {
   const deletedProductIds = await listDeletedProductIds();
@@ -460,12 +462,51 @@ export async function listAdminProducts(): Promise<AdminProduct[]> {
   if (error) throw error;
   const productIds = (data ?? []).map((row) => String(row.id));
   const variantsByProductId = await listVariantsByProductId(productIds);
-  return (data ?? [])
+  const loadedProducts = (data ?? [])
     .filter((row) => validCategoryKeys.has(row.category))
     .map((row) => productFromRow(row, variantsByProductId.get(row.id) ?? []))
     .filter(
       (product) => !replacedSeedProductIds.has(product.id) && !deletedProductIds.has(product.id),
     );
+  cacheStorefrontProducts(loadedProducts);
+  return loadedProducts;
+}
+
+export async function getAdminProduct(id: string): Promise<AdminProduct | null> {
+  const cachedProduct = readCachedStorefrontProduct(id);
+  if (cachedProduct) return cachedProduct;
+
+  if (!isSupabaseConfigured || !supabase) {
+    return seedProducts.find((product) => product.id === id) ?? null;
+  }
+
+  const { data, error } = await supabase.from("products").select("*").eq("id", id).maybeSingle();
+  if (error) throw adminDataError("Product load failed", error);
+  if (!data) return null;
+
+  const variantsByProductId = await listVariantsByProductId([id]);
+  return productFromRow(data, variantsByProductId.get(id) ?? []);
+}
+
+export function readCachedStorefrontProducts(): AdminProduct[] {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(storefrontProductsCacheKey) ?? "[]");
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isAdminProductLike) as AdminProduct[];
+  } catch {
+    return [];
+  }
+}
+
+function readCachedStorefrontProduct(id: string) {
+  return readCachedStorefrontProducts().find((product) => product.id === id) ?? null;
+}
+
+function cacheStorefrontProducts(productList: AdminProduct[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(storefrontProductsCacheKey, JSON.stringify(productList));
 }
 
 export async function upsertAdminProduct(product: AdminProduct): Promise<AdminProduct> {
@@ -664,6 +705,7 @@ function productFromRow(row: ProductRow, variants: ProductVariant[] = []): Admin
     category: row.category,
     image: row.image_url,
     gallery: row.gallery_urls ?? undefined,
+    colorImages: normalizeColorImages(row.color_images, row.colors),
     sizes: row.sizes,
     colors: row.colors,
     description: row.description,
@@ -793,6 +835,7 @@ function productToRow(product: AdminProduct): ProductRow {
     category: product.category,
     image_url: product.image,
     gallery_urls: product.gallery ?? null,
+    color_images: product.colorImages ?? null,
     sizes: product.sizes,
     colors: product.colors,
     description: product.description,
@@ -810,6 +853,34 @@ function categoryToRow(category: AdminCategory): CategoryRow {
     image_url: category.image,
     tagline: category.tagline,
   };
+}
+
+function normalizeColorImages(value: unknown, colors: string[] = []) {
+  if (!isPlainObject(value)) return undefined;
+  const validColors = new Set(colors.map((color) => color.trim()).filter(Boolean));
+  const entries = Object.entries(value).filter(
+    ([color, image]) =>
+      validColors.has(color.trim()) && typeof image === "string" && image.trim().length > 0,
+  );
+  return entries.length > 0
+    ? Object.fromEntries(entries.map(([color, image]) => [color.trim(), String(image).trim()]))
+    : undefined;
+}
+
+function isAdminProductLike(value: unknown): value is AdminProduct {
+  if (!isPlainObject(value)) return false;
+  return (
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    typeof value.price === "number" &&
+    typeof value.category === "string" &&
+    typeof value.image === "string" &&
+    Array.isArray(value.sizes) &&
+    Array.isArray(value.colors) &&
+    typeof value.description === "string" &&
+    typeof value.stock === "number" &&
+    typeof value.status === "string"
+  );
 }
 
 async function listVariantsByProductId(productIds: string[]) {

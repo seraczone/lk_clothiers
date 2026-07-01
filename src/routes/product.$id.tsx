@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import type { CSSProperties } from "react";
 import { productById, ngn, type Product } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 import { useReveal } from "@/hooks/use-reveal";
-import { seedProducts } from "@/lib/admin-data";
+import { getAdminProduct, seedProducts, type AdminProduct } from "@/lib/admin-data";
 import { useStoreProducts } from "@/hooks/use-store-products";
 import { fallbackImageForProduct, handleImageFallback } from "@/lib/product-images";
 import {
@@ -28,6 +28,38 @@ import {
   productUrl,
 } from "@/lib/seo";
 import { JsonLd } from "@/components/site/JsonLd";
+
+const visibleGalleryItems = 5;
+
+function normalizeGalleryToken(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function safeDecode(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function findImageForColor(gallery: string[], color: string) {
+  const colorToken = normalizeGalleryToken(color);
+  if (!colorToken) return undefined;
+
+  return gallery.find((image) => normalizeGalleryToken(safeDecode(image)).includes(colorToken));
+}
+
+function findMappedColorImage(colorImages: Record<string, string> | undefined, color: string) {
+  if (!colorImages) return undefined;
+  const exactMatch = colorImages[color]?.trim();
+  if (exactMatch) return exactMatch;
+
+  const colorToken = normalizeGalleryToken(color);
+  return Object.entries(colorImages).find(
+    ([mappedColor, image]) => normalizeGalleryToken(mappedColor) === colorToken && image.trim(),
+  )?.[1];
+}
 
 export const Route = createFileRoute("/product/$id")({
   head: ({ params }) => {
@@ -63,12 +95,16 @@ export const Route = createFileRoute("/product/$id")({
 function ProductPage() {
   const productId = Route.useLoaderData();
   const { products, isLoading } = useStoreProducts();
-  const product = useMemo(
+  const listedProduct = useMemo(
     () =>
       products.find((item) => item.id === productId) ??
       (isLoading ? seedProducts.find((item) => item.id === productId) : undefined),
     [isLoading, productId, products],
   );
+  const [directProduct, setDirectProduct] = useState<AdminProduct | null>(null);
+  const [isDirectLoading, setIsDirectLoading] = useState(false);
+  const [directLoadError, setDirectLoadError] = useState("");
+  const resolvedProduct = listedProduct ?? directProduct;
   const { add } = useCart();
   const [size, setSize] = useState("");
   const [color, setColor] = useState("");
@@ -77,6 +113,7 @@ function ProductPage() {
   const [zoom, setZoom] = useState(false);
   const [added, setAdded] = useState(false);
   const [active, setActive] = useState("");
+  const [galleryStart, setGalleryStart] = useState(0);
   const [storedReviews, setStoredReviews] = useState<CustomerReview[]>([]);
   const [reviewName, setReviewName] = useState("");
   const [reviewCity, setReviewCity] = useState("");
@@ -84,43 +121,92 @@ function ProductPage() {
   const [reviewBody, setReviewBody] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewSaved, setReviewSaved] = useState(false);
-  const ref = useReveal<HTMLDivElement>();
+  const revealKey = resolvedProduct ? `${resolvedProduct.id}:ready` : `${productId}:loading`;
+  const ref = useReveal<HTMLDivElement>(revealKey);
 
   useEffect(() => {
-    if (!product) return;
-    setSize(product.sizes[0] ?? "");
-    setColor(product.colors[0] ?? "");
+    if (listedProduct) {
+      setDirectProduct(null);
+      setIsDirectLoading(false);
+      setDirectLoadError("");
+      return;
+    }
+
+    let mounted = true;
+    setIsDirectLoading(true);
+    setDirectLoadError("");
+    setDirectProduct(null);
+    getAdminProduct(productId)
+      .then((loadedProduct) => {
+        if (mounted) setDirectProduct(loadedProduct);
+      })
+      .catch((error) => {
+        if (mounted) {
+          setDirectLoadError(
+            error instanceof Error ? error.message : "Unable to load this product.",
+          );
+        }
+      })
+      .finally(() => {
+        if (mounted) setIsDirectLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [listedProduct, productId]);
+
+  useEffect(() => {
+    if (!resolvedProduct) return;
+    setSize(resolvedProduct.sizes[0] ?? "");
+    setColor(resolvedProduct.colors[0] ?? "");
     setSelectedVariantId(
-      product.useVariants
-        ? (product.variants?.find((variant) => variant.stock > 0)?.id ??
-            product.variants?.[0]?.id ??
+      resolvedProduct.useVariants
+        ? (resolvedProduct.variants?.find((variant) => variant.stock > 0)?.id ??
+            resolvedProduct.variants?.[0]?.id ??
             "")
         : "",
     );
-    setActive(
-      (product.gallery ?? [product.image]).find((image) => image.trim()) ??
-        fallbackImageForProduct(product),
+    const productGallery = (resolvedProduct.gallery ?? [resolvedProduct.image]).filter((image) =>
+      image.trim(),
     );
-  }, [product]);
+    const firstColor = resolvedProduct.colors[0] ?? "";
+    setActive(
+      findMappedColorImage(resolvedProduct.colorImages, firstColor) ??
+        findImageForColor(productGallery, firstColor) ??
+        productGallery[0] ??
+        fallbackImageForProduct(resolvedProduct),
+    );
+    setGalleryStart(0);
+  }, [resolvedProduct]);
 
   useEffect(() => {
-    if (!product) return;
-    const variants = product.useVariants ? (product.variants ?? []) : [];
+    if (!resolvedProduct) return;
+    const variants = resolvedProduct.useVariants ? (resolvedProduct.variants ?? []) : [];
     const selectedVariant =
       variants.find((variant) => variant.id === selectedVariantId) ?? variants[0];
-    const maxStock = selectedVariant?.stock ?? product.stock;
+    const maxStock = selectedVariant?.stock ?? resolvedProduct.stock;
     setQty((currentQty) => Math.min(Math.max(1, currentQty), Math.max(1, maxStock)));
-  }, [product, selectedVariantId]);
+  }, [resolvedProduct, selectedVariantId]);
 
   useEffect(() => {
     setStoredReviews(readStoredReviews(productId));
   }, [productId]);
 
-  if (!product) {
+  if (!resolvedProduct && isDirectLoading) {
+    return <div className="min-h-[55svh]" aria-busy="true" />;
+  }
+
+  if (!resolvedProduct) {
     return (
       <div className="px-6 py-24 text-center">
         <p className="eyebrow mb-3">Product</p>
         <h1 className="font-display text-4xl">This product is not available.</h1>
+        {directLoadError && (
+          <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-muted-foreground">
+            {directLoadError}
+          </p>
+        )}
         <Link
           to="/shop"
           className="mt-6 inline-flex bg-foreground px-5 py-3 text-xs uppercase tracking-[0.2em] text-background"
@@ -131,9 +217,13 @@ function ProductPage() {
     );
   }
 
+  const product = resolvedProduct;
   const fallbackImage = fallbackImageForProduct(product);
   const gallery = (product.gallery ?? [product.image]).filter((image) => image.trim());
   const activeImage = active || gallery[0] || fallbackImage;
+  const maxGalleryStart = Math.max(0, gallery.length - visibleGalleryItems);
+  const visibleGallery = gallery.slice(galleryStart, galleryStart + visibleGalleryItems);
+  const showGalleryArrows = gallery.length > visibleGalleryItems;
   const variants = product.useVariants ? (product.variants ?? []) : [];
   const selectedVariant =
     variants.find((variant) => variant.id === selectedVariantId) ?? variants[0];
@@ -165,6 +255,25 @@ function ProductPage() {
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
+  };
+
+  const shiftGallery = (direction: -1 | 1) => {
+    setGalleryStart((current) =>
+      Math.min(Math.max(current + direction, 0), maxGalleryStart),
+    );
+  };
+
+  const handleColorSelect = (nextColor: string) => {
+    setColor(nextColor);
+    const matchingImage =
+      findMappedColorImage(product.colorImages, nextColor) ?? findImageForColor(gallery, nextColor);
+    if (!matchingImage) return;
+
+    const matchingIndex = gallery.indexOf(matchingImage);
+    setActive(matchingImage);
+    if (matchingIndex >= 0) {
+      setGalleryStart(Math.min(Math.max(matchingIndex - 2, 0), maxGalleryStart));
+    }
   };
 
   const handleReviewSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -224,14 +333,14 @@ function ProductPage() {
       <section className="px-6 lg:px-12 pb-20 max-w-[1400px] mx-auto grid lg:grid-cols-2 gap-10 lg:gap-16">
         <div className="reveal" style={{ "--reveal-x": "-36px" } as CSSProperties}>
           <div
-            className="relative aspect-[4/5] bg-[color:var(--cream)] overflow-hidden cursor-zoom-in"
+            className="relative aspect-[4/5] bg-[color:var(--cream)] overflow-hidden cursor-zoom-in p-4 sm:p-6 lg:p-8"
             onClick={() => setZoom(true)}
           >
             <img
               src={activeImage}
               alt={product.name}
               onError={(event) => handleImageFallback(event, fallbackImage)}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain object-center"
             />
             {product.tag && (
               <span className="absolute top-4 left-4 bg-background/90 px-2.5 py-1 text-[10px] uppercase tracking-[0.2em]">
@@ -240,22 +349,47 @@ function ProductPage() {
             )}
           </div>
           {gallery.length > 1 && (
-            <div className="flex gap-3 mt-4">
-              {gallery.map((g: string, i: number) => (
+            <div className="mt-4 flex items-center gap-2">
+              {showGalleryArrows && (
                 <button
-                  key={i}
-                  onClick={() => setActive(g)}
-                  className={`w-20 h-24 overflow-hidden border ${active === g ? "border-foreground" : "border-border"}`}
+                  type="button"
+                  onClick={() => shiftGallery(-1)}
+                  disabled={galleryStart === 0}
+                  aria-label="Previous product images"
+                  className="grid h-10 w-10 shrink-0 place-items-center border border-border bg-background transition-colors hover:border-foreground disabled:cursor-not-allowed disabled:opacity-35"
                 >
-                  <img
-                    src={g}
-                    alt=""
-                    loading="lazy"
-                    onError={(event) => handleImageFallback(event, fallbackImage)}
-                    className="w-full h-full object-contain"
-                  />
+                  <ChevronLeft size={17} />
                 </button>
-              ))}
+              )}
+              <div className="grid flex-1 grid-cols-4 gap-2 sm:grid-cols-5 sm:gap-3">
+                {visibleGallery.map((g: string, i: number) => (
+                  <button
+                    key={`${g}-${galleryStart + i}`}
+                    type="button"
+                    onClick={() => setActive(g)}
+                    className={`aspect-[4/5] overflow-hidden border bg-[color:var(--cream)] p-1 ${activeImage === g ? "border-foreground" : "border-border"}`}
+                  >
+                    <img
+                      src={g}
+                      alt=""
+                      loading="lazy"
+                      onError={(event) => handleImageFallback(event, fallbackImage)}
+                      className="w-full h-full object-contain object-center"
+                    />
+                  </button>
+                ))}
+              </div>
+              {showGalleryArrows && (
+                <button
+                  type="button"
+                  onClick={() => shiftGallery(1)}
+                  disabled={galleryStart >= maxGalleryStart}
+                  aria-label="Next product images"
+                  className="grid h-10 w-10 shrink-0 place-items-center border border-border bg-background transition-colors hover:border-foreground disabled:cursor-not-allowed disabled:opacity-35"
+                >
+                  <ChevronRight size={17} />
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -305,7 +439,7 @@ function ProductPage() {
               {product.colors.map((c: string) => (
                 <button
                   key={c}
-                  onClick={() => setColor(c)}
+                  onClick={() => handleColorSelect(c)}
                   className={`px-4 py-2 text-xs uppercase tracking-[0.2em] border ${color === c ? "border-foreground bg-foreground text-background" : "border-border"}`}
                 >
                   {c}
@@ -433,7 +567,7 @@ function ProductPage() {
                 >
                   <div className="relative aspect-[4/5] overflow-hidden bg-background mb-3">
                     <img
-                      src={p.image}
+                      src={p.image || fallbackImageForProduct(p)}
                       alt={p.name}
                       loading="lazy"
                       onError={(event) =>
