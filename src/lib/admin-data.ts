@@ -160,6 +160,7 @@ type ProductVariantRow = {
   product_id: string;
   variant_type: string;
   variant_value: string;
+  options?: Record<string, string> | null;
   price: number;
   stock: number;
   sku: string | null;
@@ -867,6 +868,14 @@ function normalizeColorImages(value: unknown, colors: string[] = []) {
     : undefined;
 }
 
+function normalizeVariantOptions(value: unknown) {
+  if (!isPlainObject(value)) return undefined;
+  const entries = Object.entries(value)
+    .map(([key, optionValue]) => [key.trim(), String(optionValue ?? "").trim()] as const)
+    .filter(([key, optionValue]) => key.length > 0 && optionValue.length > 0);
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+}
+
 function isAdminProductLike(value: unknown): value is AdminProduct {
   if (!isPlainObject(value)) return false;
   return (
@@ -889,7 +898,7 @@ async function listVariantsByProductId(productIds: string[]) {
 
   const { data, error } = await supabase
     .from("product_variants")
-    .select("id,product_id,variant_type,variant_value,price,stock,sku,position")
+    .select("id,product_id,variant_type,variant_value,options,price,stock,sku,position")
     .in("product_id", productIds)
     .order("position", { ascending: true });
 
@@ -929,6 +938,7 @@ function variantFromRow(row: ProductVariantRow): ProductVariant {
     productId: row.product_id,
     variantType: row.variant_type,
     variantValue: row.variant_value,
+    options: normalizeVariantOptions(row.options),
     price: row.price,
     stock: row.stock,
     sku: row.sku ?? undefined,
@@ -942,6 +952,7 @@ function variantToRow(variant: ProductVariant): ProductVariantRow {
     product_id: variant.productId,
     variant_type: variant.variantType,
     variant_value: variant.variantValue,
+    options: normalizeVariantOptions(variant.options) ?? {},
     price: variant.price,
     stock: variant.stock,
     sku: variant.sku ?? null,

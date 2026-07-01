@@ -126,6 +126,7 @@ create table if not exists public.product_variants (
   product_id text not null references public.products(id) on delete cascade,
   variant_type text not null,
   variant_value text not null,
+  options jsonb not null default '{}'::jsonb,
   price integer not null check (price >= 0),
   stock integer not null default 0 check (stock >= 0),
   sku text,
@@ -133,6 +134,8 @@ create table if not exists public.product_variants (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.product_variants add column if not exists options jsonb not null default '{}'::jsonb;
 
 create index if not exists product_variants_product_id_idx
 on public.product_variants(product_id);

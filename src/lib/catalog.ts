@@ -85,6 +85,7 @@ export type ProductVariant = {
   productId: string;
   variantType: string;
   variantValue: string;
+  options?: Record<string, string>;
   price: number;
   stock: number;
   sku?: string;

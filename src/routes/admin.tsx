@@ -998,6 +998,7 @@ function ProductEditor({
   const [isUploading, setIsUploading] = useState(false);
   const [galleryUrlInput, setGalleryUrlInput] = useState("");
   const colorOptions = splitList(draft.colors);
+  const sizeOptions = splitList(draft.sizes);
   const galleryOptions = normalizeGallery(draft.image, draft.gallery);
 
   useEffect(() => {
@@ -1021,6 +1022,23 @@ function ProductEditor({
       }
       return { ...current, colorImages: nextColorImages };
     });
+  };
+
+  const updateVariantOption = (index: number, optionName: string, optionValue: string) => {
+    setDraft((current) => ({
+      ...current,
+      variants: current.variants.map((variant, variantIndex) => {
+        if (variantIndex !== index) return variant;
+        const options = { ...(variant.options ?? {}) };
+        const cleanValue = optionValue.trim();
+        if (cleanValue) {
+          options[optionName] = cleanValue;
+        } else {
+          delete options[optionName];
+        }
+        return { ...variant, options };
+      }),
+    }));
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -1069,6 +1087,7 @@ function ProductEditor({
           ...variant,
           id: variant.id || `${normalizedId}-${Date.now()}-${index}`,
           productId: normalizedId,
+          options: normalizeVariantOptions(variant.options),
           variantType: variant.variantType.trim(),
           variantValue: variant.variantValue.trim(),
           sku: variant.sku?.trim() || undefined,
@@ -1076,6 +1095,15 @@ function ProductEditor({
           stock: Math.round(Number(variant.stock)),
           position: index,
         }))
+        .map((variant) => {
+          if (variant.variantType && variant.variantValue) return variant;
+          const optionLabel = formatVariantOptions(variant.options);
+          return {
+            ...variant,
+            variantType: variant.variantType || (optionLabel ? "Options" : ""),
+            variantValue: variant.variantValue || optionLabel,
+          };
+        })
       : [];
     if (
       draft.useVariants &&
@@ -1220,8 +1248,12 @@ function ProductEditor({
         {
           id: `${productId}-variant-${Date.now()}`,
           productId,
-          variantType: "Age",
+          variantType: colorOptions.length || sizeOptions.length ? "Options" : "Age",
           variantValue: "",
+          options: {
+            ...(colorOptions[0] ? { Color: colorOptions[0] } : {}),
+            ...(sizeOptions[0] ? { Size: sizeOptions[0] } : {}),
+          },
           price: Number(current.price) || 0,
           stock: 0,
           sku: "",
@@ -1599,8 +1631,48 @@ function ProductEditor({
                 {draft.variants.map((variant, index) => (
                   <div
                     key={variant.id || index}
-                    className="grid gap-3 rounded-[8px] border border-border bg-[color:var(--cream)] p-3 lg:grid-cols-[1fr_1fr_120px_100px_1fr_auto]"
+                    className="grid gap-3 rounded-[8px] border border-border bg-[color:var(--cream)] p-3 lg:grid-cols-[1fr_1fr_1fr_1fr_120px_100px_1fr_auto]"
                   >
+                    {colorOptions.length > 0 && (
+                      <label className="block">
+                        <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                          Color
+                        </span>
+                        <select
+                          value={variant.options?.Color ?? ""}
+                          onChange={(event) =>
+                            updateVariantOption(index, "Color", event.target.value)
+                          }
+                          className="h-11 w-full rounded-[6px] border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-foreground"
+                        >
+                          <option value="">Any color</option>
+                          {colorOptions.map((color) => (
+                            <option key={color} value={color}>
+                              {color}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                    {sizeOptions.length > 0 && (
+                      <label className="block">
+                        <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                          Size
+                        </span>
+                        <select
+                          value={variant.options?.Size ?? ""}
+                          onChange={(event) => updateVariantOption(index, "Size", event.target.value)}
+                          className="h-11 w-full rounded-[6px] border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-foreground"
+                        >
+                          <option value="">Any size</option>
+                          {sizeOptions.map((size) => (
+                            <option key={size} value={size}>
+                              {size}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
                     <Field
                       label="Variant Type"
                       value={variant.variantType}
@@ -2337,6 +2409,21 @@ function normalizeProductColorImages(
   }, {});
 }
 
+function normalizeVariantOptions(options: Record<string, string> | undefined) {
+  if (!options) return undefined;
+  const entries = Object.entries(options)
+    .map(([key, value]) => [key.trim(), value.trim()] as const)
+    .filter(([key, value]) => key && value);
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+}
+
+function formatVariantOptions(options: Record<string, string> | undefined) {
+  return Object.entries(options ?? {})
+    .filter(([, value]) => value.trim())
+    .map(([key, value]) => `${key}: ${value}`)
+    .join(" / ");
+}
+
 function splitList(value: string) {
   return value
     .split(",")
@@ -2391,7 +2478,13 @@ function humanize(value: string) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function formatCartVariant(item: { variantType?: string; variantValue?: string }) {
+function formatCartVariant(item: {
+  variantType?: string;
+  variantValue?: string;
+  variantOptions?: Record<string, string>;
+}) {
+  const optionLabel = formatVariantOptions(item.variantOptions);
+  if (optionLabel) return optionLabel;
   if (!item.variantType || !item.variantValue) return "";
   return `${item.variantType}: ${item.variantValue}`;
 }

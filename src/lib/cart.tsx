@@ -12,6 +12,7 @@ export type CartItem = {
   variantId?: string;
   variantType?: string;
   variantValue?: string;
+  variantOptions?: Record<string, string>;
   variantSku?: string;
   variantPrice?: number;
 };

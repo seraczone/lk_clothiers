@@ -7,6 +7,8 @@ import { useCart } from "@/lib/cart";
 import { getProductReviewSummary, ratingLabel } from "@/lib/reviews";
 import { fallbackImageForProduct, handleImageFallback } from "@/lib/product-images";
 
+type StoreProductVariant = NonNullable<Product["variants"]>[number];
+
 export function ProductCard({
   p,
   delay = 0,
@@ -25,12 +27,13 @@ export function ProductCard({
       ? (p as Product & { stock: number }).stock
       : undefined;
   const inStock = stock === undefined || stock > 0;
-  const defaultSize = p.sizes[0];
-  const defaultColor = p.colors[0];
   const reviewSummary = getProductReviewSummary(p);
   const fallbackImage = fallbackImageForProduct(p);
   const variants = p.useVariants ? (p.variants ?? []) : [];
   const defaultVariant = variants.find((variant) => variant.stock > 0) ?? variants[0];
+  const defaultSize = getVariantOption(defaultVariant, "Size") || p.sizes[0];
+  const defaultColor = getVariantOption(defaultVariant, "Color") || p.colors[0];
+  const usesOptionVariant = Boolean(defaultVariant?.options && Object.keys(defaultVariant.options).length > 0);
   const displayPrice = defaultVariant?.price ?? p.price;
   const isInCart = items.some(
     (item) =>
@@ -60,8 +63,9 @@ export function ProductCard({
       image: p.image,
       price: p.price,
       variantId: defaultVariant?.id,
-      variantType: defaultVariant?.variantType,
-      variantValue: defaultVariant?.variantValue,
+      variantType: usesOptionVariant ? undefined : defaultVariant?.variantType,
+      variantValue: usesOptionVariant ? undefined : defaultVariant?.variantValue,
+      variantOptions: defaultVariant?.options,
       variantSku: defaultVariant?.sku,
       variantPrice: defaultVariant?.price,
     });
@@ -167,4 +171,12 @@ export function ProductCard({
       )}
     </div>
   );
+}
+
+function getVariantOption(variant: StoreProductVariant | undefined, optionName: string) {
+  if (!variant?.options) return "";
+  const match = Object.entries(variant.options).find(
+    ([key]) => key.toLowerCase() === optionName.toLowerCase(),
+  );
+  return match?.[1] ?? "";
 }
