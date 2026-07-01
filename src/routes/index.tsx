@@ -168,32 +168,32 @@ function useReveal(observeKey = "") {
 
 function Hero({ content }: { content: ContentState }) {
   return (
-    <section className="hero-sticky relative min-h-[90svh]">
-      <div className="absolute inset-0 overflow-hidden bg-foreground">
-        <img
-          src={heroImg}
-          alt="LK Clothiers dresses on display"
-          className="hero-zoom-image absolute inset-0 h-full w-full object-cover"
-        />
-      </div>
+    <section className="hero-sticky relative min-h-[86svh] overflow-hidden sm:min-h-[90svh]">
+      <img
+        src={heroImg}
+        alt="LK Clothiers dresses on display"
+        className="hero-zoom-image absolute inset-0 h-full w-full object-cover object-top"
+      />
       <div className="absolute inset-0 bg-gradient-to-r from-foreground/70 via-foreground/40 to-foreground/10" />
-      <div className="relative z-10 flex items-end lg:items-center min-h-[90svh] px-6 lg:px-12 pb-16 lg:pb-0">
-        <div className="hero-fade-text max-w-xl">
-          <p className="eyebrow mb-6 text-white/80">{content.home.heroEyebrow}</p>
-          <h1 className="hero-headline text-3xl leading-[1.16] text-white sm:text-4xl md:text-[2.8rem] lg:text-5xl">
+      <div className="relative z-10 flex min-h-[86svh] items-center px-6 py-8 sm:min-h-[90svh] lg:px-12 lg:py-0">
+        <div className="hero-fade-text w-full max-w-[46rem]">
+          <p className="eyebrow mb-4 text-[0.62rem] font-normal text-white/80 sm:mb-5 sm:text-xs md:mb-6">
+            {content.home.heroEyebrow}
+          </p>
+          <h1 className="hero-headline text-[2.3rem] leading-[1.08] text-white sm:text-[3rem] md:text-[3.65rem] lg:text-[4.15rem]">
             {content.home.heroLineOne}
             <br />
             <em className="italic text-[color:var(--accent)]">{content.home.heroAccent}</em>{" "}
             {content.home.heroLineTwo}
           </h1>
-          <p className="hero-made mt-3 text-xl italic leading-none text-white md:text-2xl">
+          <p className="hero-made mt-4 text-2xl italic leading-none text-white sm:text-3xl">
             <span className="text-[color:var(--accent)]">Made</span>{" "}
             <span className="text-white">for you.</span>
           </p>
-          <p className="mt-6 text-base text-white/80 leading-relaxed max-w-sm">
+          <p className="mt-5 max-w-[36rem] text-sm leading-relaxed text-white/80 sm:mt-6 sm:text-lg md:text-xl">
             {content.home.heroCopy}
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-6 flex flex-wrap gap-3 sm:mt-8">
             <Link
               to="/shop"
               className="group inline-flex items-center gap-3 bg-[color:var(--accent)] text-white px-7 py-4 text-xs uppercase tracking-[0.25em] hover:bg-white hover:text-foreground transition-colors"
@@ -210,7 +210,7 @@ function Hero({ content }: { content: ContentState }) {
               {content.home.secondaryCta}
             </a>
           </div>
-          <div className="mt-12 flex items-center gap-8 text-xs text-white/70">
+          <div className="mt-7 flex items-center gap-5 text-xs text-white/70 sm:mt-10 sm:gap-6 sm:text-sm md:mt-12 md:gap-8">
             <span>{content.home.heroMetaLeft}</span>
             <span className="w-8 h-px bg-white/30" />
             <span>{content.home.heroMetaRight}</span>

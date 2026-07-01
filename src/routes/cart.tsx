@@ -130,7 +130,7 @@ function CartPage() {
               to="/checkout?method=whatsapp"
               className="mt-8 block text-center bg-[color:var(--accent)] px-7 py-4 text-xs uppercase tracking-[0.25em] text-white transition-colors hover:bg-foreground"
             >
-              Checkout with WhatsApp
+              Checkout via WhatsApp
             </Link>
             <Link
               to="/checkout?method=online"

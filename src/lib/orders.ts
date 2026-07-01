@@ -21,7 +21,7 @@ export type SavedOrder = {
   subtotal: number;
   discount: number;
   total: number;
-  paymentMethod: "paystack" | "flutterwave" | "transfer";
+  paymentMethod: "paystack" | "flutterwave" | "transfer" | "whatsapp";
   deliveryMethod: DeliveryMethod;
   deliveryAddress?: string;
   status: "Pending" | "Processing" | "Delivered" | "Cancelled";
@@ -113,6 +113,34 @@ export async function saveOrder(order: SavedOrder) {
   if (error) {
     console.info("Order was saved locally. Supabase order insert skipped:", error.message);
   }
+}
+
+export async function updateOrderStatus(
+  order: SavedOrder,
+  status: SavedOrder["status"],
+): Promise<SavedOrder> {
+  const updatedOrder: SavedOrder = { ...order, status };
+  updateLocalOrder(updatedOrder);
+
+  if (isSupabaseConfigured && supabase) {
+    const { error } = await supabase.from("orders").update({ status }).eq("id", order.id);
+    if (error) {
+      console.info("Order status was updated locally. Supabase update skipped:", error.message);
+    }
+  }
+
+  return updatedOrder;
+}
+
+function updateLocalOrder(order: SavedOrder) {
+  if (typeof window === "undefined") return;
+  const orders = readLocalOrders();
+  const existingIndex = orders.findIndex((item) => item.id === order.id);
+  const nextOrders =
+    existingIndex >= 0
+      ? orders.map((item) => (item.id === order.id ? order : item))
+      : [order, ...orders];
+  window.localStorage.setItem(ordersKey, JSON.stringify(nextOrders.slice(0, 60)));
 }
 
 export function buildCustomerEmailBody(order: SavedOrder) {
@@ -215,6 +243,7 @@ function normalizeCustomer(value: unknown): CheckoutCustomer {
 }
 
 function normalizePaymentMethod(value: unknown): SavedOrder["paymentMethod"] {
+  if (value === "whatsapp") return value;
   if (value === "flutterwave" || value === "transfer") return value;
   return "paystack";
 }

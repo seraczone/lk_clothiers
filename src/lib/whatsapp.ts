@@ -8,7 +8,7 @@ export const WHATSAPP_BASE = `https://api.whatsapp.com/send?phone=${WHATSAPP_PHO
 const PAYMENT_BANK_NAME =
   (import.meta.env.VITE_PAYMENT_BANK_NAME as string | undefined)?.trim() || "Moniepoint";
 const PAYMENT_ACCOUNT_NAME =
-  (import.meta.env.VITE_PAYMENT_ACCOUNT_NAME as string | undefined)?.trim() || "LkClothiers";
+  (import.meta.env.VITE_PAYMENT_ACCOUNT_NAME as string | undefined)?.trim() || "LkCLothiers";
 const PAYMENT_ACCOUNT_NUMBER =
   (import.meta.env.VITE_PAYMENT_ACCOUNT_NUMBER as string | undefined)?.trim() || "5775644823";
 const PICKUP_ADDRESS =
@@ -60,29 +60,43 @@ export function checkoutWhatsAppUrl(
       const variantLabel =
         item.variantType && item.variantValue ? `${item.variantType}: ${item.variantValue}` : "";
       const optionLabel = [item.color, item.size, variantLabel].filter(Boolean).join(", ");
-      return `- ${name} (${optionLabel}) x${item.qty}: ${ngn(price * item.qty)}`;
+      const options = optionLabel ? ` (${optionLabel})` : "";
+      return `• ${name}${options} × ${item.qty} — ${ngn(price * item.qty)}`;
     })
     .filter(Boolean)
     .join("\n");
 
   const message = [
-    "Hi LK Clothiers, I would like to checkout with this order:",
+    "🛍️ New Order – LK Clothiers",
+    "",
+    "Hello LK Clothiers, I'd like to place the following order:",
+    "",
+    "Items",
     lines,
+    "",
+    "Order Summary",
     `Subtotal: ${ngn(subtotal)}`,
     discount > 0 ? `Discount: -${ngn(discount)}` : "Discount: NGN 0",
-    `Final order total: ${ngn(total)}`,
-    customer?.fullName ? `Customer name: ${customer.fullName}` : "",
+    `Order Total: ${ngn(total)}`,
+    "",
+    "Customer Details",
+    customer?.fullName ? `Name: ${customer.fullName}` : "",
     customer?.phone ? `Phone: ${customer.phone}` : "",
-    deliveryMethod ? `Delivery method: ${deliveryMethodLabels[deliveryMethod]}` : "",
-    deliveryMethod === "pickup" ? `Pickup address: ${PICKUP_ADDRESS}` : "",
-    deliveryMethod === "home" && deliveryAddress ? `Delivery address: ${deliveryAddress}` : "",
-    "Payment details:",
+    "",
+    "Delivery",
+    deliveryMethod ? `Method: ${deliveryMethodLabels[deliveryMethod]}` : "",
+    deliveryMethod === "pickup" ? `Address: ${PICKUP_ADDRESS}` : "",
+    deliveryMethod === "home" && deliveryAddress ? `Address: ${deliveryAddress}` : "",
+    "",
+    "Payment Details",
     `Bank: ${PAYMENT_BANK_NAME}`,
     `Account Name: ${PAYMENT_ACCOUNT_NAME}`,
     `Account Number: ${PAYMENT_ACCOUNT_NUMBER}`,
-    "Kindly share receipt after payment.",
+    "",
+    "Kindly make payment to the account above and send your payment receipt in this chat. Your order will be confirmed once payment has been verified.",
+    "",
+    "Thank you for shopping with LK Clothiers.",
   ]
-    .filter(Boolean)
     .join("\n");
 
   return whatsappUrl(message);

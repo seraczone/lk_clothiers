@@ -31,6 +31,7 @@ import {
   defaultContent,
   deleteAdminCategory,
   deleteAdminProduct,
+  decrementProductStock,
   getSiteContent,
   listAdminCategories,
   listAdminProducts,
@@ -46,7 +47,13 @@ import {
 } from "@/lib/admin-data";
 import { ngn, products, type CategoryKey, type ProductVariant } from "@/lib/catalog";
 import { isSupabaseConfigured, supabase, supabaseConfigError } from "@/lib/supabase";
-import { deliveryMethodLabels, formatOrderDate, listOrders, type SavedOrder } from "@/lib/orders";
+import {
+  deliveryMethodLabels,
+  formatOrderDate,
+  listOrders,
+  updateOrderStatus,
+  type SavedOrder,
+} from "@/lib/orders";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin - LK Clothiers" }] }),
@@ -1996,6 +2003,8 @@ function EditableNode({
 function OrdersTab() {
   const [orders, setOrders] = useState<SavedOrder[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<SavedOrder | null>(null);
+  const [orderError, setOrderError] = useState("");
+  const [updatingOrderId, setUpdatingOrderId] = useState("");
   const rows: Array<{
     id: string;
     customer: string;
@@ -2030,8 +2039,42 @@ function OrdersTab() {
     };
   }, []);
 
+  const handleOrderStatusChange = async (
+    order: SavedOrder,
+    nextStatus: SavedOrder["status"],
+  ) => {
+    if (order.status === nextStatus) return;
+    setOrderError("");
+    setUpdatingOrderId(order.id);
+    try {
+      const shouldDecrementStock =
+        order.status === "Pending" && (nextStatus === "Processing" || nextStatus === "Delivered");
+      if (shouldDecrementStock) {
+        await decrementProductStock(order.items);
+      }
+      const updatedOrder = await updateOrderStatus(order, nextStatus);
+      setOrders((current) =>
+        current.map((item) => (item.id === updatedOrder.id ? updatedOrder : item)),
+      );
+      setSelectedOrder((current) =>
+        current?.id === updatedOrder.id ? updatedOrder : current,
+      );
+    } catch (error) {
+      setOrderError(
+        error instanceof Error ? error.message : "Unable to update this order status.",
+      );
+    } finally {
+      setUpdatingOrderId("");
+    }
+  };
+
   return (
     <Panel title="Orders MVP">
+      {orderError && (
+        <p className="mb-4 rounded-[6px] border border-[color:var(--destructive)] bg-[color:var(--destructive)]/8 px-4 py-3 text-sm text-[color:var(--destructive)]">
+          {orderError}
+        </p>
+      )}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[860px] text-left text-sm">
           <thead className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -2053,7 +2096,28 @@ function OrdersTab() {
                 <td className="py-4">{row.customer}</td>
                 <td className="py-4">{row.delivery ?? "Not captured"}</td>
                 <td className="py-4 tabular-nums">{ngn(row.total)}</td>
-                <td className="py-4">{row.status}</td>
+                <td className="py-4">
+                  {row.order ? (
+                    <select
+                      value={row.order.status}
+                      disabled={updatingOrderId === row.order.id}
+                      onChange={(event) =>
+                        handleOrderStatusChange(
+                          row.order as SavedOrder,
+                          event.target.value as SavedOrder["status"],
+                        )
+                      }
+                      className="h-9 rounded-[6px] border border-border bg-background px-2 text-xs outline-none focus:border-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <option>Pending</option>
+                      <option>Processing</option>
+                      <option>Delivered</option>
+                      <option>Cancelled</option>
+                    </select>
+                  ) : (
+                    row.status
+                  )}
+                </td>
                 <td className="py-4">
                   <button
                     type="button"

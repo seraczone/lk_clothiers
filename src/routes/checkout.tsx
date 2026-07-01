@@ -113,7 +113,7 @@ function CheckoutPage() {
     }
   };
 
-  const openWhatsAppCheckout = () => {
+  const openWhatsAppCheckout = async () => {
     setError("");
     if (!whatsappCustomer.fullName.trim() || !whatsappCustomer.phone.trim()) {
       setError("Please enter your full name and phone number before checking out on WhatsApp.");
@@ -124,20 +124,65 @@ function CheckoutPage() {
       return;
     }
 
-    const popup = window.open(whatsappCheckout, "_blank", "noopener,noreferrer");
-    if (!popup) window.location.href = whatsappCheckout;
+    setIsSubmitting(true);
+    try {
+      const nameParts = whatsappCustomer.fullName.trim().split(/\s+/);
+      const orderBase: Omit<SavedOrder, "customerEmailBody" | "adminNotificationBody"> = {
+        id: createOrderId(),
+        createdAt: new Date().toISOString(),
+        customer: {
+          firstName: nameParts[0] ?? whatsappCustomer.fullName.trim(),
+          lastName: nameParts.slice(1).join(" "),
+          email: "",
+          phone: whatsappCustomer.phone.trim(),
+          city: "",
+          state: "",
+        },
+        items,
+        subtotal,
+        discount,
+        total,
+        paymentMethod: "whatsapp",
+        deliveryMethod,
+        deliveryAddress: deliveryMethod === "home" ? deliveryAddress.trim() : undefined,
+        status: "Pending",
+      };
+      const order: SavedOrder = {
+        ...orderBase,
+        customerEmailBody: "",
+        adminNotificationBody: "",
+      };
+      order.customerEmailBody = buildCustomerEmailBody(order);
+      order.adminNotificationBody = buildAdminNotificationBody(order);
+
+      await saveOrder(order);
+      clear();
+      const popup = window.open(whatsappCheckout, "_blank", "noopener,noreferrer");
+      if (!popup) window.location.href = whatsappCheckout;
+      setConfirmedOrder(order);
+      setDone(true);
+    } catch {
+      setError("We could not save this WhatsApp order. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (done) {
     const pickup = confirmedOrder?.deliveryMethod === "pickup";
+    const isPendingWhatsAppOrder = confirmedOrder?.paymentMethod === "whatsapp";
     return (
       <div className="px-6 lg:px-12 py-32 max-w-xl mx-auto text-center lk-fade-up">
-        <p className="eyebrow mb-4">Order Confirmed</p>
+        <p className="eyebrow mb-4">
+          {isPendingWhatsAppOrder ? "Order Received" : "Order Confirmed"}
+        </p>
         <h1 className="font-display text-4xl mb-6">Thank you.</h1>
         <p className="text-sm text-muted-foreground">
-          {pickup
-            ? "Thank you for your order. We will notify you when your items are ready for collection."
-            : "Thank you for your order. Our team will contact you shortly to confirm delivery arrangements."}
+          {isPendingWhatsAppOrder
+            ? "Your WhatsApp order has been saved as pending. Please complete payment and send your receipt in the WhatsApp chat so our team can confirm it."
+            : pickup
+              ? "Thank you for your order. We will notify you when your items are ready for collection."
+              : "Thank you for your order. Our team will contact you shortly to confirm delivery arrangements."}
         </p>
       </div>
     );
@@ -176,7 +221,7 @@ function CheckoutPage() {
                   : "border-border hover:border-foreground"
               }`}
             >
-              Checkout with WhatsApp
+              Checkout via WhatsApp
             </Link>
             <Link
               to="/checkout?method=online"
@@ -430,7 +475,7 @@ function CheckoutPage() {
               }}
               className="mt-3 block w-full text-center bg-[color:var(--accent)] px-7 py-4 text-xs uppercase tracking-[0.25em] text-white transition-colors hover:bg-foreground"
             >
-              Checkout on WhatsApp
+              Checkout via WhatsApp
             </a>
           ) : (
             <button

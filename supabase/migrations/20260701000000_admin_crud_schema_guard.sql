@@ -162,7 +162,7 @@ create table if not exists public.orders (
   discount integer not null default 0 check (discount >= 0),
   total integer not null default 0 check (total >= 0),
   payment_method text not null default 'paystack'
-    check (payment_method in ('paystack', 'flutterwave', 'transfer')),
+    check (payment_method in ('paystack', 'flutterwave', 'transfer', 'whatsapp')),
   delivery_method text not null default 'pickup'
     check (delivery_method in ('pickup', 'home')),
   delivery_address text,
@@ -176,6 +176,10 @@ create table if not exists public.orders (
 
 create index if not exists orders_created_at_idx on public.orders(created_at desc);
 create index if not exists orders_status_idx on public.orders(status);
+
+alter table public.orders drop constraint if exists orders_payment_method_check;
+alter table public.orders add constraint orders_payment_method_check
+check (payment_method in ('paystack', 'flutterwave', 'transfer', 'whatsapp')) not valid;
 
 drop trigger if exists orders_set_updated_at on public.orders;
 create trigger orders_set_updated_at
