@@ -477,8 +477,12 @@ export async function upsertAdminProduct(product: AdminProduct): Promise<AdminPr
     .select()
     .single();
 
-  if (error) throw error;
-  await replaceProductVariants(product.id, product.variants ?? []);
+  if (error) throw adminDataError("Product save failed", error);
+  try {
+    await replaceProductVariants(product.id, product.variants ?? []);
+  } catch (error) {
+    throw adminDataError("Product variants save failed", error);
+  }
   forgetDeletedProductId(product.id);
 
   const { error: deletedProductError } = await client
@@ -500,7 +504,7 @@ export async function deleteAdminProduct(id: string): Promise<void> {
   const client = requireSupabase();
 
   const { error } = await client.from("products").delete().eq("id", id);
-  if (error) throw error;
+  if (error) throw adminDataError("Product delete failed", error);
 
   rememberDeletedProductId(id);
 
@@ -541,14 +545,14 @@ export async function upsertAdminCategory(category: AdminCategory): Promise<Admi
     .select("key,name,image_url,tagline")
     .single();
 
-  if (error) throw error;
+  if (error) throw adminDataError("Category save failed", error);
   return categoryFromRow(data);
 }
 
 export async function deleteAdminCategory(key: string): Promise<void> {
   const client = requireSupabase();
   const { error } = await client.from("categories").delete().eq("key", key);
-  if (error) throw error;
+  if (error) throw adminDataError("Category delete failed", error);
 }
 
 export async function decrementProductStock(items: Pick<CartItem, "id" | "qty" | "variantId">[]): Promise<void> {
@@ -600,7 +604,7 @@ export async function uploadProductImage(file: File, productId: string): Promise
     upsert: true,
   });
 
-  if (error) throw error;
+  if (error) throw adminDataError("Image upload failed", error);
 
   return client.storage.from("product-images").getPublicUrl(filePath).data.publicUrl;
 }
@@ -630,6 +634,20 @@ export async function saveSiteContent(content: ContentState): Promise<ContentSta
 
   if (error) throw error;
   return normalizeSiteContent(data.value);
+}
+
+function adminDataError(context: string, error: unknown) {
+  if (error instanceof Error) return new Error(`${context}: ${error.message}`);
+  if (isPlainObject(error)) {
+    const parts = [
+      typeof error.message === "string" ? error.message : "",
+      typeof error.details === "string" ? error.details : "",
+      typeof error.hint === "string" ? error.hint : "",
+      typeof error.code === "string" ? `Code: ${error.code}` : "",
+    ].filter(Boolean);
+    return new Error(`${context}: ${parts.join(" ") || JSON.stringify(error)}`);
+  }
+  return new Error(`${context}: ${String(error)}`);
 }
 
 export function normalizeSiteContent(value: unknown): ContentState {

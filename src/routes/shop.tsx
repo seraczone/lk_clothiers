@@ -195,7 +195,7 @@ function ShopPage() {
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
             {filtered.map((p, i) => (
-              <ProductCard key={p.id} p={p} delay={i * 70} />
+              <ProductCard key={p.id} p={p} delay={i * 70} showActions={false} />
             ))}
           </div>
         </section>

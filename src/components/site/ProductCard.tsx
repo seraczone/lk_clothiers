@@ -11,10 +11,12 @@ export function ProductCard({
   p,
   delay = 0,
   showDetails = true,
+  showActions = true,
 }: {
   p: Product;
   delay?: number;
   showDetails?: boolean;
+  showActions?: boolean;
 }) {
   const { add, items, remove } = useCart();
   const [added, setAdded] = useState(false);
@@ -143,24 +145,26 @@ export function ProductCard({
         {ngn(displayPrice)}
         {variants.length > 1 ? "+" : ""} - <span className="capitalize">{p.category}</span>
       </p>
-      <div className={`mt-3 grid gap-2 ${showDetails ? "grid-cols-2" : "grid-cols-1"}`}>
-        <button
-          onClick={handleAdd}
-          disabled={!inStock}
-          className="min-h-10 rounded-[6px] bg-[color:var(--accent)] px-2 py-2.5 text-[9px] font-medium uppercase tracking-[0.14em] text-white shadow-sm transition-colors hover:bg-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--accent)] disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 sm:text-[10px] sm:tracking-[0.2em]"
-        >
-          {!inStock ? "Out of Stock" : isInCart ? "Remove" : added ? "Added" : "Add to Bag"}
-        </button>
-        {showDetails && (
-          <Link
-            to="/product/$id"
-            params={{ id: p.id }}
-            className="min-h-10 rounded-[6px] border border-foreground/60 bg-background/70 px-2 py-2.5 text-center text-[9px] font-medium uppercase tracking-[0.14em] transition-colors hover:border-foreground hover:bg-foreground hover:text-background focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground sm:px-3 sm:text-[10px] sm:tracking-[0.2em]"
+      {showActions && (
+        <div className={`mt-3 grid gap-2 ${showDetails ? "grid-cols-2" : "grid-cols-1"}`}>
+          <button
+            onClick={handleAdd}
+            disabled={!inStock}
+            className="min-h-10 rounded-[6px] bg-[color:var(--accent)] px-2 py-2.5 text-[9px] font-medium uppercase tracking-[0.14em] text-white shadow-sm transition-colors hover:bg-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--accent)] disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 sm:text-[10px] sm:tracking-[0.2em]"
           >
-            Details
-          </Link>
-        )}
-      </div>
+            {!inStock ? "Out of Stock" : isInCart ? "Remove" : added ? "Added" : "Add to Bag"}
+          </button>
+          {showDetails && (
+            <Link
+              to="/product/$id"
+              params={{ id: p.id }}
+              className="min-h-10 rounded-[6px] border border-foreground/60 bg-background/70 px-2 py-2.5 text-center text-[9px] font-medium uppercase tracking-[0.14em] transition-colors hover:border-foreground hover:bg-foreground hover:text-background focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground sm:px-3 sm:text-[10px] sm:tracking-[0.2em]"
+            >
+              Details
+            </Link>
+          )}
+        </div>
+      )}
     </div>
   );
 }
