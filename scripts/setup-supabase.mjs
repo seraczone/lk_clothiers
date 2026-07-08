@@ -57,35 +57,86 @@ const assetMap = {
 };
 
 const categories = [
-  { key: "girls", name: "Girls", image: "girl-dresses.png", tagline: "Mini LK" },
-  { key: "boys", name: "Boys", image: "boys-blue-kaftan-hero.jpeg", tagline: "Little gentlemen" },
+  {
+    key: "women",
+    name: "Women",
+    image: "hero-silk-dresses.jpeg",
+    tagline: "Signature modest edits",
+    parentKey: null,
+    sortOrder: 0,
+  },
+  {
+    key: "boys",
+    name: "Boys",
+    image: "boys-blue-kaftan-hero.jpeg",
+    tagline: "Little gentlemen",
+    parentKey: null,
+    sortOrder: 1,
+  },
+  {
+    key: "girls",
+    name: "Girls",
+    image: "girl-dresses.png",
+    tagline: "Mini LK",
+    parentKey: null,
+    sortOrder: 2,
+  },
   {
     key: "shirt",
     name: "Shirt",
     image: "linen-long-shirt-mint.jpeg",
     tagline: "Tailored everyday shirts",
+    parentKey: "women",
+    sortOrder: 0,
   },
   {
     key: "shirt-dress",
     name: "Shirt Dress",
     image: "shirt-dress-blue-hanger.jpeg",
     tagline: "Buttoned ease",
+    parentKey: "women",
+    sortOrder: 1,
   },
   {
     key: "luxury-kaftan",
     name: "Luxury Kaftan",
     image: "luxury-kaftan-models.jpeg",
     tagline: "Embellished modest elegance",
+    parentKey: "women",
+    sortOrder: 2,
   },
-  { key: "linen", name: "Linen", image: "linen-set-mint.jpeg", tagline: "Easy linen separates" },
+  {
+    key: "linen",
+    name: "Linen",
+    image: "linen-set-mint.jpeg",
+    tagline: "Easy linen separates",
+    parentKey: "women",
+    sortOrder: 3,
+  },
   {
     key: "boubou",
     name: "Bou'bou",
     image: "boubou-embellished-colors.jpeg",
     tagline: "Embellished ease",
+    parentKey: "women",
+    sortOrder: 4,
   },
-  { key: "adire", name: "Adire", image: "adire-orange.jpeg", tagline: "Artisan dyed pieces" },
-  { key: "silk", name: "Silk", image: "silk-flare-purple.jpeg", tagline: "Silk flare dresses" },
+  {
+    key: "adire",
+    name: "Adire",
+    image: "adire-orange.jpeg",
+    tagline: "Artisan dyed pieces",
+    parentKey: "women",
+    sortOrder: 5,
+  },
+  {
+    key: "silk",
+    name: "Silk",
+    image: "silk-flare-purple.jpeg",
+    tagline: "Silk flare dresses",
+    parentKey: "women",
+    sortOrder: 6,
+  },
 ];
 
 const products = [
@@ -311,6 +362,8 @@ async function setupDatabase(urls) {
         name text not null,
         image_url text not null,
         tagline text not null,
+        parent_key text references public.categories(key) on update cascade on delete restrict,
+        sort_order integer,
         created_at timestamptz not null default now(),
         updated_at timestamptz not null default now()
       );
@@ -335,6 +388,26 @@ async function setupDatabase(urls) {
       );
 
       alter table public.products add column if not exists use_variants boolean not null default false;
+      alter table public.categories add column if not exists parent_key text;
+      alter table public.categories add column if not exists sort_order integer;
+
+      do $$
+      begin
+        if not exists (
+          select 1
+          from pg_constraint
+          where conname = 'categories_parent_key_fkey'
+            and conrelid = 'public.categories'::regclass
+        ) then
+          alter table public.categories
+            add constraint categories_parent_key_fkey
+            foreign key (parent_key)
+            references public.categories(key)
+            on update cascade
+            on delete restrict;
+        end if;
+      end;
+      $$;
 
       create table if not exists public.product_variants (
         id text primary key,
@@ -446,14 +519,23 @@ async function setupDatabase(urls) {
     for (const category of categories) {
       await client.query(
         `
-          insert into public.categories (key, name, image_url, tagline)
-          values ($1, $2, $3, $4)
+          insert into public.categories (key, name, image_url, tagline, parent_key, sort_order)
+          values ($1, $2, $3, $4, $5, $6)
           on conflict (key) do update set
             name = excluded.name,
             image_url = excluded.image_url,
-            tagline = excluded.tagline
+            tagline = excluded.tagline,
+            parent_key = excluded.parent_key,
+            sort_order = excluded.sort_order
         `,
-        [category.key, category.name, urls[category.image], category.tagline],
+        [
+          category.key,
+          category.name,
+          urls[category.image],
+          category.tagline,
+          category.parentKey,
+          category.sortOrder,
+        ],
       );
     }
 

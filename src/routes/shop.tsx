@@ -7,6 +7,7 @@ import { useReveal } from "@/hooks/use-reveal";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { useStoreProducts } from "@/hooks/use-store-products";
 import { useStoreCategories } from "@/hooks/use-store-categories";
+import { childCategories, topLevelCategories } from "@/lib/category-utils";
 import { absoluteUrl } from "@/lib/seo";
 
 export const Route = createFileRoute("/shop")({
@@ -39,6 +40,7 @@ function ShopPage() {
   const content = useSiteContent();
   const { products: shopProducts } = useStoreProducts();
   const categories = useStoreCategories();
+  const topCategories = topLevelCategories(categories);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"new" | "low" | "high">("new");
   const [max, setMax] = useState(300000);
@@ -83,7 +85,7 @@ function ShopPage() {
           </Link>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9">
-          {categories.map((c, i) => (
+          {topCategories.map((c, i) => (
             <Link
               key={c.key}
               to="/shop/$category"
@@ -100,14 +102,7 @@ function ShopPage() {
               <img
                 src={c.image}
                 alt={`${c.name} collection`}
-                className={`absolute inset-0 h-full w-full ${
-                  c.key === "adire" ||
-                  c.key === "boubou" ||
-                  c.key === "shirt-dress" ||
-                  c.key === "silk"
-                    ? "object-contain"
-                    : "object-cover"
-                }`}
+                className="absolute inset-0 h-full w-full object-cover"
                 loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-foreground/75 via-foreground/10 to-transparent" />
@@ -134,16 +129,30 @@ function ShopPage() {
                 >
                   {content.shop.allPieces}
                 </Link>
-                {categories.map((category) => (
-                  <Link
-                    key={category.key}
-                    to="/shop/$category"
-                    params={{ category: category.key }}
-                    className="px-3 py-2 border border-border text-[10px] uppercase tracking-[0.2em] text-center hover:border-foreground hover:bg-foreground hover:text-background transition-colors"
-                  >
-                    {category.name}
-                  </Link>
-                ))}
+                {topCategories.map((category) => {
+                  const children = childCategories(categories, category.key);
+                  return (
+                    <div key={category.key} className="grid gap-1">
+                      <Link
+                        to="/shop/$category"
+                        params={{ category: category.key }}
+                        className="px-3 py-2 border border-border text-[10px] uppercase tracking-[0.2em] text-center hover:border-foreground hover:bg-foreground hover:text-background transition-colors"
+                      >
+                        {category.name}
+                      </Link>
+                      {children.map((child) => (
+                        <Link
+                          key={child.key}
+                          to="/shop/$category"
+                          params={{ category: child.key }}
+                          className="px-3 py-1.5 border border-border/70 text-[10px] uppercase tracking-[0.16em] text-center text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
+                        >
+                          {child.name}
+                        </Link>
+                      ))}
+                    </div>
+                  );
+                })}
               </div>
             </div>
             <div>

@@ -16,6 +16,8 @@ create table if not exists public.categories (
   name text,
   image_url text,
   tagline text,
+  parent_key text,
+  sort_order integer,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -23,6 +25,8 @@ create table if not exists public.categories (
 alter table public.categories add column if not exists name text;
 alter table public.categories add column if not exists image_url text;
 alter table public.categories add column if not exists tagline text;
+alter table public.categories add column if not exists parent_key text;
+alter table public.categories add column if not exists sort_order integer;
 alter table public.categories add column if not exists created_at timestamptz not null default now();
 alter table public.categories add column if not exists updated_at timestamptz not null default now();
 
@@ -33,6 +37,27 @@ update public.categories set tagline = 'LK collection' where tagline is null;
 alter table public.categories alter column name set not null;
 alter table public.categories alter column image_url set not null;
 alter table public.categories alter column tagline set not null;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'categories_parent_key_fkey'
+      and conrelid = 'public.categories'::regclass
+  ) then
+    alter table public.categories
+      add constraint categories_parent_key_fkey
+      foreign key (parent_key)
+      references public.categories(key)
+      on update cascade
+      on delete restrict;
+  end if;
+end;
+$$;
+
+create index if not exists categories_parent_key_idx on public.categories(parent_key);
+create index if not exists categories_sort_order_idx on public.categories(parent_key, sort_order, name);
 
 drop trigger if exists categories_set_updated_at on public.categories;
 create trigger categories_set_updated_at

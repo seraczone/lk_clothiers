@@ -46,6 +46,13 @@ import {
   type ProductStatus,
 } from "@/lib/admin-data";
 import { ngn, products, type CategoryKey, type ProductVariant } from "@/lib/catalog";
+import {
+  assignableProductCategories,
+  categoryByKey,
+  childCategories,
+  sortCategories,
+  topLevelCategories,
+} from "@/lib/category-utils";
 import { isSupabaseConfigured, supabase, supabaseConfigError } from "@/lib/supabase";
 import {
   deliveryMethodLabels,
@@ -580,10 +587,15 @@ function ProductsTab({
     name: "",
     image: "",
     tagline: "",
+    parentKey: null,
   });
   const [isCategoryUploading, setIsCategoryUploading] = useState(false);
   const [mutationError, setMutationError] = useState("");
   const [mutationSuccess, setMutationSuccess] = useState("");
+  const orderedCategories = sortCategories(categories);
+  const parentCategoryOptions = topLevelCategories(categories).filter(
+    (item) => item.key !== categoryDraft.key,
+  );
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -669,6 +681,9 @@ function ProductsTab({
         name: categoryDraft.name.trim(),
         image: categoryDraft.image.trim() || products[0]?.image || "",
         tagline: categoryDraft.tagline.trim() || "LK collection",
+        parentKey: categoryDraft.parentKey || null,
+        sortOrder:
+          typeof categoryDraft.sortOrder === "number" ? categoryDraft.sortOrder : undefined,
       });
       const exists = categories.some((item) => item.key === savedCategory.key);
       onCategoriesChange(
@@ -676,7 +691,7 @@ function ProductsTab({
           ? categories.map((item) => (item.key === savedCategory.key ? savedCategory : item))
           : [...categories, savedCategory],
       );
-      setCategoryDraft({ key: "", name: "", image: "", tagline: "" });
+      setCategoryDraft({ key: "", name: "", image: "", tagline: "", parentKey: null });
       setMutationError("");
       setMutationSuccess(`${savedCategory.name} category was saved.`);
     } catch (error) {
@@ -713,6 +728,12 @@ function ProductsTab({
     const categoryToDelete = categories.find((item) => item.key === key);
     if (!categoryToDelete) return;
     const hasProducts = adminProducts.some((product) => product.category === key);
+    const hasChildren = categories.some((category) => category.parentKey === key);
+    if (hasChildren) {
+      setMutationError("Move or delete child categories before deleting this category.");
+      setMutationSuccess("");
+      return;
+    }
     if (hasProducts) {
       setMutationError("Move products out of this category before deleting it.");
       setMutationSuccess("");
@@ -777,9 +798,9 @@ function ProductsTab({
             className="h-11 rounded-[6px] border border-border bg-background px-3 text-sm outline-none focus:border-foreground"
           >
             <option value="all">All categories</option>
-            {categories.map((item) => (
+            {orderedCategories.map((item) => (
               <option key={item.key} value={item.key}>
-                {item.name}
+                {item.parentKey ? `- ${item.name}` : item.name}
               </option>
             ))}
           </select>
@@ -800,7 +821,7 @@ function ProductsTab({
         <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
           Add a new category here, then select it when creating or editing products.
         </p>
-        <form onSubmit={saveCategory} className="grid gap-3 lg:grid-cols-[1fr_1fr_1.2fr_1fr_auto]">
+        <form onSubmit={saveCategory} className="grid gap-3 lg:grid-cols-6">
           <Field
             label="Name"
             value={categoryDraft.name}
@@ -815,8 +836,32 @@ function ProductsTab({
           <Field
             label="Slug"
             value={categoryDraft.key}
-            onChange={(value) => setCategoryDraft((current) => ({ ...current, key: slugify(value) }))}
+            onChange={(value) =>
+              setCategoryDraft((current) => ({ ...current, key: slugify(value) }))
+            }
           />
+          <label className="block">
+            <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              Parent
+            </span>
+            <select
+              value={categoryDraft.parentKey ?? ""}
+              onChange={(event) =>
+                setCategoryDraft((current) => ({
+                  ...current,
+                  parentKey: event.target.value || null,
+                }))
+              }
+              className="h-11 w-full rounded-[6px] border border-border bg-background px-3 text-sm outline-none focus:border-foreground"
+            >
+              <option value="">None</option>
+              {parentCategoryOptions.map((item) => (
+                <option key={item.key} value={item.key}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
           <Field
             label="Image URL"
             value={categoryDraft.image}
@@ -827,6 +872,18 @@ function ProductsTab({
             label="Tagline"
             value={categoryDraft.tagline}
             onChange={(value) => setCategoryDraft((current) => ({ ...current, tagline: value }))}
+          />
+          <Field
+            label="Sort Order"
+            type="number"
+            value={categoryDraft.sortOrder?.toString() ?? ""}
+            placeholder="Optional"
+            onChange={(value) =>
+              setCategoryDraft((current) => ({
+                ...current,
+                sortOrder: value.trim() ? Number(value) : undefined,
+              }))
+            }
           />
           <button
             type="submit"
@@ -840,7 +897,9 @@ function ProductsTab({
           {categoryDraft.image.trim() ? (
             <img
               src={categoryDraft.image}
-              alt={categoryDraft.name ? `${categoryDraft.name} category preview` : "Category preview"}
+              alt={
+                categoryDraft.name ? `${categoryDraft.name} category preview` : "Category preview"
+              }
               loading="lazy"
               className="h-28 w-full rounded-[6px] border border-border bg-background object-contain"
             />
@@ -862,17 +921,20 @@ function ProductsTab({
               />
             </label>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Upload fills the Image URL field. Save the category after upload so it persists in Supabase.
+              Upload fills the Image URL field. Save the category after upload so it persists in
+              Supabase.
             </p>
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          {categories.map((item) => (
+          {orderedCategories.map((item) => (
             <span
               key={item.key}
               className="inline-flex items-center gap-2 rounded-[6px] border border-border bg-[color:var(--cream)] px-3 py-2 text-xs"
             >
-              {item.name}
+              {item.parentKey
+                ? `${categoryByKey(categories, item.parentKey)?.name ?? "Parent"} / ${item.name}`
+                : item.name}
               <button
                 type="button"
                 onClick={() => {
@@ -924,7 +986,9 @@ function ProductsTab({
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 capitalize">{product.category}</td>
+                  <td className="px-4 py-3">
+                    {categoryByKey(categories, product.category)?.name ?? product.category}
+                  </td>
                   <td className="px-4 py-3 tabular-nums">
                     {product.useVariants && product.variants?.length
                       ? `${ngn(Math.min(...product.variants.map((variant) => variant.price)))}+`
@@ -1007,12 +1071,21 @@ function ProductEditor({
   const colorOptions = splitList(draft.colors);
   const sizeOptions = splitList(draft.sizes);
   const galleryOptions = normalizeGallery(draft.image, draft.gallery);
+  const orderedCategories = useMemo(() => sortCategories(categories), [categories]);
+  const assignableCategories = useMemo(() => assignableProductCategories(categories), [categories]);
+  const selectedCategory = categoryByKey(categories, draft.category);
+  const selectedParentKey = selectedCategory?.parentKey ?? selectedCategory?.key ?? "";
+  const selectedParent = categoryByKey(categories, selectedParentKey);
+  const selectedChildren = selectedParent ? childCategories(categories, selectedParent.key) : [];
+  const canAssignSelectedCategory = assignableCategories.some(
+    (category) => category.key === draft.category,
+  );
 
   useEffect(() => {
-    if (categories.length === 0) return;
-    if (categories.some((category) => category.key === draft.category)) return;
-    updateDraft("category", categories[0].key);
-  }, [categories, draft.category]);
+    if (assignableCategories.length === 0) return;
+    if (assignableCategories.some((category) => category.key === draft.category)) return;
+    updateDraft("category", assignableCategories[0].key);
+  }, [assignableCategories, draft.category]);
 
   const updateDraft = <K extends keyof ProductDraft>(key: K, value: ProductDraft[K]) => {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -1066,8 +1139,8 @@ function ProductEditor({
       setError("Create a product category before saving products.");
       return;
     }
-    if (!categories.some((category) => category.key === draft.category)) {
-      setError("Choose an existing product category before saving.");
+    if (!canAssignSelectedCategory) {
+      setError("Choose a child category that can hold products before saving.");
       return;
     }
     const parsedPrice = Number(draft.price);
@@ -1090,27 +1163,28 @@ function ProductEditor({
       return;
     }
     const variants = draft.useVariants
-      ? draft.variants.map((variant, index) => ({
-          ...variant,
-          id: variant.id || `${normalizedId}-${Date.now()}-${index}`,
-          productId: normalizedId,
-          options: normalizeVariantOptions(variant.options),
-          variantType: variant.variantType.trim(),
-          variantValue: variant.variantValue.trim(),
-          sku: variant.sku?.trim() || undefined,
-          price: Number(variant.price),
-          stock: Math.round(Number(variant.stock)),
-          position: index,
-        }))
-        .map((variant) => {
-          if (variant.variantType && variant.variantValue) return variant;
-          const optionLabel = formatVariantOptions(variant.options);
-          return {
+      ? draft.variants
+          .map((variant, index) => ({
             ...variant,
-            variantType: variant.variantType || (optionLabel ? "Options" : ""),
-            variantValue: variant.variantValue || optionLabel,
-          };
-        })
+            id: variant.id || `${normalizedId}-${Date.now()}-${index}`,
+            productId: normalizedId,
+            options: normalizeVariantOptions(variant.options),
+            variantType: variant.variantType.trim(),
+            variantValue: variant.variantValue.trim(),
+            sku: variant.sku?.trim() || undefined,
+            price: Number(variant.price),
+            stock: Math.round(Number(variant.stock)),
+            position: index,
+          }))
+          .map((variant) => {
+            if (variant.variantType && variant.variantValue) return variant;
+            const optionLabel = formatVariantOptions(variant.options);
+            return {
+              ...variant,
+              variantType: variant.variantType || (optionLabel ? "Options" : ""),
+              variantValue: variant.variantValue || optionLabel,
+            };
+          })
       : [];
     if (
       draft.useVariants &&
@@ -1138,7 +1212,7 @@ function ProductEditor({
       await onSave({
         id: normalizedId,
         name: draft.name.trim(),
-        price: draft.useVariants ? variants[0]?.price ?? 0 : parsedPrice,
+        price: draft.useVariants ? (variants[0]?.price ?? 0) : parsedPrice,
         useVariants: draft.useVariants,
         variants,
         category: draft.category,
@@ -1359,17 +1433,41 @@ function ProductEditor({
                 Category
               </span>
               <select
-                value={draft.category}
-                onChange={(event) => updateDraft("category", event.target.value as CategoryKey)}
+                value={selectedParentKey}
+                onChange={(event) => {
+                  const nextParent = event.target.value as CategoryKey;
+                  const children = childCategories(categories, nextParent);
+                  updateDraft("category", (children[0]?.key ?? nextParent) as CategoryKey);
+                }}
                 className="h-11 w-full rounded-[6px] border border-border bg-background px-3 text-sm outline-none focus:border-foreground"
               >
-                {categories.map((item) => (
-                  <option key={item.key} value={item.key}>
-                    {item.name}
-                  </option>
-                ))}
+                {orderedCategories
+                  .filter((item) => !item.parentKey)
+                  .map((item) => (
+                    <option key={item.key} value={item.key}>
+                      {item.name}
+                    </option>
+                  ))}
               </select>
             </label>
+            {selectedChildren.length > 0 && (
+              <label className="block">
+                <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Subcategory
+                </span>
+                <select
+                  value={draft.category}
+                  onChange={(event) => updateDraft("category", event.target.value as CategoryKey)}
+                  className="h-11 w-full rounded-[6px] border border-border bg-background px-3 text-sm outline-none focus:border-foreground"
+                >
+                  {selectedChildren.map((item) => (
+                    <option key={item.key} value={item.key}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label className="mt-7 flex items-center gap-3 text-sm">
               <input
                 type="checkbox"
@@ -1668,7 +1766,9 @@ function ProductEditor({
                         </span>
                         <select
                           value={variant.options?.Size ?? ""}
-                          onChange={(event) => updateVariantOption(index, "Size", event.target.value)}
+                          onChange={(event) =>
+                            updateVariantOption(index, "Size", event.target.value)
+                          }
                           className="h-11 w-full rounded-[6px] border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-foreground"
                         >
                           <option value="">Any size</option>
@@ -2039,10 +2139,7 @@ function OrdersTab() {
     };
   }, []);
 
-  const handleOrderStatusChange = async (
-    order: SavedOrder,
-    nextStatus: SavedOrder["status"],
-  ) => {
+  const handleOrderStatusChange = async (order: SavedOrder, nextStatus: SavedOrder["status"]) => {
     if (order.status === nextStatus) return;
     setOrderError("");
     setUpdatingOrderId(order.id);
@@ -2056,13 +2153,9 @@ function OrdersTab() {
       setOrders((current) =>
         current.map((item) => (item.id === updatedOrder.id ? updatedOrder : item)),
       );
-      setSelectedOrder((current) =>
-        current?.id === updatedOrder.id ? updatedOrder : current,
-      );
+      setSelectedOrder((current) => (current?.id === updatedOrder.id ? updatedOrder : current));
     } catch (error) {
-      setOrderError(
-        error instanceof Error ? error.message : "Unable to update this order status.",
-      );
+      setOrderError(error instanceof Error ? error.message : "Unable to update this order status.");
     } finally {
       setUpdatingOrderId("");
     }

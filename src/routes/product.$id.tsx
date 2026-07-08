@@ -8,7 +8,9 @@ import { useCart } from "@/lib/cart";
 import { useReveal } from "@/hooks/use-reveal";
 import { getAdminProduct, seedProducts, type AdminProduct } from "@/lib/admin-data";
 import { useStoreProducts } from "@/hooks/use-store-products";
+import { useStoreCategories } from "@/hooks/use-store-categories";
 import { fallbackImageForProduct, handleImageFallback } from "@/lib/product-images";
+import { categoryName as storeCategoryName, categoryPath } from "@/lib/category-utils";
 import {
   getSeedReviews,
   categoryName,
@@ -141,6 +143,7 @@ export const Route = createFileRoute("/product/$id")({
 function ProductPage() {
   const productId = Route.useLoaderData();
   const { products, isLoading } = useStoreProducts();
+  const categories = useStoreCategories();
   const listedProduct = useMemo(
     () =>
       products.find((item) => item.id === productId) ??
@@ -288,6 +291,8 @@ function ProductPage() {
   const related = products
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 4);
+  const productCategoryPath = categoryPath(categories, product.category);
+  const productCategoryName = storeCategoryName(categories, product.category);
 
   const handleAdd = () => {
     if (!inStock) return;
@@ -311,9 +316,7 @@ function ProductPage() {
   };
 
   const shiftGallery = (direction: -1 | 1) => {
-    setGalleryStart((current) =>
-      Math.min(Math.max(current + direction, 0), maxGalleryStart),
-    );
+    setGalleryStart((current) => Math.min(Math.max(current + direction, 0), maxGalleryStart));
   };
 
   const selectGalleryImage = (image: string) => {
@@ -363,9 +366,7 @@ function ProductPage() {
     const matchingVariant = findVariantForSelection(optionVariants, color, nextSize);
     if (!matchingVariant) return;
     setSelectedVariantId(matchingVariant.id);
-    setQty((currentQty) =>
-      Math.min(Math.max(1, currentQty), Math.max(1, matchingVariant.stock)),
-    );
+    setQty((currentQty) => Math.min(Math.max(1, currentQty), Math.max(1, matchingVariant.stock)));
   };
 
   const handleReviewSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -403,7 +404,10 @@ function ProductPage() {
         data={breadcrumbJsonLd([
           { name: "Home", url: absoluteUrl("/") },
           { name: "Shop", url: absoluteUrl("/shop") },
-          { name: categoryName(product.category), url: collectionUrl(product.category) },
+          ...productCategoryPath.map((category) => ({
+            name: category.name,
+            url: collectionUrl(category.key),
+          })),
           { name: product.name, url: productUrl(product.id) },
         ])}
       />
@@ -412,14 +416,28 @@ function ProductPage() {
           Shop
         </Link>{" "}
         /{" "}
-        <Link
-          to="/shop/$category"
-          params={{ category: product.category }}
-          className="lk-link capitalize"
-        >
-          {product.category}
-        </Link>{" "}
-        / <span className="text-foreground">{product.name}</span>
+        {productCategoryPath.length > 0 ? (
+          productCategoryPath.map((category) => (
+            <span key={category.key}>
+              <Link to="/shop/$category" params={{ category: category.key }} className="lk-link">
+                {category.name}
+              </Link>{" "}
+              /{" "}
+            </span>
+          ))
+        ) : (
+          <>
+            <Link
+              to="/shop/$category"
+              params={{ category: product.category }}
+              className="lk-link capitalize"
+            >
+              {productCategoryName}
+            </Link>{" "}
+            /{" "}
+          </>
+        )}
+        <span className="text-foreground">{product.name}</span>
       </div>
 
       <section className="px-6 lg:px-12 pb-20 max-w-[1400px] mx-auto grid lg:grid-cols-2 gap-10 lg:gap-16">
@@ -513,7 +531,7 @@ function ProductPage() {
         </div>
 
         <div className="reveal" style={{ "--reveal-x": "36px" } as CSSProperties}>
-          <p className="eyebrow mb-4 capitalize">{product.category}</p>
+          <p className="eyebrow mb-4 capitalize">{productCategoryName}</p>
           <h1 className="font-display text-4xl lg:text-5xl leading-tight">{product.name}</h1>
           <p className="mt-4 font-display text-2xl text-[color:var(--accent)]">
             {ngn(selectedPrice)}
@@ -712,9 +730,7 @@ function ProductPage() {
                       src={p.image || fallbackImageForProduct(p)}
                       alt={p.name}
                       loading="lazy"
-                      onError={(event) =>
-                        handleImageFallback(event, fallbackImageForProduct(p))
-                      }
+                      onError={(event) => handleImageFallback(event, fallbackImageForProduct(p))}
                       className="w-full h-full object-contain"
                     />
                   </div>

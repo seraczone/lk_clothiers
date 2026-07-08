@@ -5,6 +5,7 @@ import { ProductCard } from "@/components/site/ProductCard";
 import { useReveal } from "@/hooks/use-reveal";
 import { useStoreProducts } from "@/hooks/use-store-products";
 import { useStoreCategories } from "@/hooks/use-store-categories";
+import { childCategories, productsForCategory, topLevelCategories } from "@/lib/category-utils";
 import { collectionUrl } from "@/lib/seo";
 
 export const Route = createFileRoute("/shop/$category")({
@@ -35,34 +36,22 @@ function CategoryPage() {
   const categories = useStoreCategories();
   const cat = categories.find((item) => item.key === category);
   const { products } = useStoreProducts();
-  const items = cat
-    ? products.filter((product) => product.category === (cat.key as CategoryKey))
-    : [];
+  const items = cat ? productsForCategory(products, categories, cat.key as CategoryKey) : [];
+  const topCategories = topLevelCategories(categories);
+  const childFilters = cat ? childCategories(categories, cat.key as CategoryKey) : [];
   const revealKey = items.map((product) => product.id).join("|");
   const ref = useReveal<HTMLDivElement>(`${category}:${revealKey}`);
 
   if (!cat) return null;
-  const isAdire = cat.key === "adire";
-  const isBoys = cat.key === "boys";
   const heroImage = cat.image;
 
   return (
     <div ref={ref}>
-      <header
-        className={`relative bg-[color:var(--cream)] overflow-hidden ${
-          isAdire ? "h-[72svh] min-h-[620px]" : "h-[44svh] min-h-[320px]"
-        }`}
-      >
+      <header className="relative h-[44svh] min-h-[320px] overflow-hidden bg-[color:var(--cream)]">
         <img
           src={heroImage}
           alt=""
-          className={`absolute inset-0 w-full h-full opacity-80 ${
-            isAdire
-              ? "object-cover object-center"
-              : isBoys
-                ? "object-contain object-right-bottom md:object-center"
-                : "object-cover"
-          }`}
+          className="absolute inset-0 h-full w-full object-cover opacity-80"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background/75 via-background/20 to-transparent" />
         <div
@@ -87,7 +76,7 @@ function CategoryPage() {
             >
               All
             </Link>
-            {categories.map((c) => (
+            {topCategories.map((c) => (
               <Link
                 key={c.key}
                 to="/shop/$category"
@@ -101,6 +90,20 @@ function CategoryPage() {
               </Link>
             ))}
           </div>
+          {childFilters.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em]">
+              {childFilters.map((child) => (
+                <Link
+                  key={child.key}
+                  to="/shop/$category"
+                  params={{ category: child.key }}
+                  className="px-3 py-1.5 border border-border text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
+                >
+                  {child.name}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </nav>
 

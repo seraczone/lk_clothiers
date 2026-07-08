@@ -2,11 +2,13 @@ import { Link } from "@tanstack/react-router";
 import footerLogo from "@/assets/lk-footer-logo.png";
 import { useReveal } from "@/hooks/use-reveal";
 import { useSiteContent } from "@/hooks/use-site-content";
-import { categories } from "@/lib/catalog";
+import { useStoreCategories } from "@/hooks/use-store-categories";
+import { topLevelCategories } from "@/lib/category-utils";
 import { genericWhatsAppUrl } from "@/lib/whatsapp";
 
 export function Footer() {
   const content = useSiteContent();
+  const categories = topLevelCategories(useStoreCategories());
   const ref = useReveal<HTMLElement>();
 
   return (
@@ -18,11 +20,7 @@ export function Footer() {
         <div className="footer-reveal grid md:grid-cols-4 gap-12 mb-16">
           <div className="md:col-span-2">
             <Link to="/" aria-label="LK Clothiers home" className="inline-flex">
-              <img
-                src={footerLogo}
-                alt="LK Clothiers"
-                className="h-36 w-72 object-contain"
-              />
+              <img src={footerLogo} alt="LK Clothiers" className="h-36 w-72 object-contain" />
             </Link>
             <p className="mt-4 text-background/60 max-w-sm text-sm leading-relaxed">
               {content.general.footerCopy}

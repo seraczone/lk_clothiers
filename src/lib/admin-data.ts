@@ -172,6 +172,8 @@ type CategoryRow = {
   name: string;
   image_url: string;
   tagline: string;
+  parent_key?: string | null;
+  sort_order?: number | null;
 };
 
 type SiteContentRow = {
@@ -567,7 +569,8 @@ export async function listAdminCategories(): Promise<AdminCategory[]> {
 
   const { data, error } = await supabase
     .from("categories")
-    .select("key,name,image_url,tagline")
+    .select("key,name,image_url,tagline,parent_key,sort_order")
+    .order("sort_order", { ascending: true, nullsFirst: false })
     .order("name", { ascending: true });
 
   if (error) {
@@ -584,7 +587,7 @@ export async function upsertAdminCategory(category: AdminCategory): Promise<Admi
   const { data, error } = await client
     .from("categories")
     .upsert(categoryToRow(category), { onConflict: "key" })
-    .select("key,name,image_url,tagline")
+    .select("key,name,image_url,tagline,parent_key,sort_order")
     .single();
 
   if (error) throw adminDataError("Category save failed", error);
@@ -597,7 +600,9 @@ export async function deleteAdminCategory(key: string): Promise<void> {
   if (error) throw adminDataError("Category delete failed", error);
 }
 
-export async function decrementProductStock(items: Pick<CartItem, "id" | "qty" | "variantId">[]): Promise<void> {
+export async function decrementProductStock(
+  items: Pick<CartItem, "id" | "qty" | "variantId">[],
+): Promise<void> {
   const quantities = items.reduce<Record<string, number>>((total, item) => {
     const key = item.variantId ? `${item.id}::${item.variantId}` : item.id;
     total[key] = (total[key] ?? 0) + item.qty;
@@ -723,6 +728,8 @@ function categoryFromRow(row: CategoryRow): AdminCategory {
     name: row.name,
     image: row.image_url,
     tagline: row.tagline,
+    parentKey: row.parent_key ?? null,
+    sortOrder: row.sort_order ?? undefined,
   };
 }
 
@@ -853,6 +860,8 @@ function categoryToRow(category: AdminCategory): CategoryRow {
     name: category.name,
     image_url: category.image,
     tagline: category.tagline,
+    parent_key: category.parentKey ?? null,
+    sort_order: category.sortOrder ?? null,
   };
 }
 
@@ -926,9 +935,11 @@ async function replaceProductVariants(productId: string, variants: ProductVarian
   if (deleteError) throw deleteError;
   if (variants.length === 0) return;
 
-  const { error } = await client.from("product_variants").insert(
-    variants.map((variant, index) => variantToRow({ ...variant, productId, position: index })),
-  );
+  const { error } = await client
+    .from("product_variants")
+    .insert(
+      variants.map((variant, index) => variantToRow({ ...variant, productId, position: index })),
+    );
   if (error) throw error;
 }
 

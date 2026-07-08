@@ -3,6 +3,7 @@ import amaraPrintDressPrimary from "@/assets/amara-print-dress-primary.png";
 import amaraPrintDressSide from "@/assets/amara-print-dress-side.png";
 import boysBlueKaftanHero from "@/assets/boys-blue-kaftan-hero.jpeg";
 import girlDressesAsset from "@/assets/girl-dresses.png";
+import heroSilkDresses from "@/assets/hero-silk-dresses.jpeg";
 
 const publicSupabaseUrl = "https://mtymltempomoqdbfhngw.supabase.co";
 const supabaseUrl =
@@ -78,6 +79,8 @@ export type Category = {
   name: string;
   image: string;
   tagline: string;
+  parentKey?: CategoryKey | null;
+  sortOrder?: number;
 };
 
 export type ProductVariant = {
@@ -110,24 +113,69 @@ export type Product = {
 };
 
 export const categories: Category[] = [
-  { key: "girls", name: "Girls", image: girlDresses, tagline: "Mini LK" },
-  { key: "boys", name: "Boys", image: boysBlueKaftanHero, tagline: "Little gentlemen" },
+  {
+    key: "women",
+    name: "Women",
+    image: heroSilkDresses,
+    tagline: "Signature modest edits",
+    sortOrder: 0,
+  },
+  {
+    key: "boys",
+    name: "Boys",
+    image: boysBlueKaftanHero,
+    tagline: "Little gentlemen",
+    sortOrder: 1,
+  },
+  { key: "girls", name: "Girls", image: girlDresses, tagline: "Mini LK", sortOrder: 2 },
   {
     key: "shirt-dress",
     name: "Shirt Dress",
     image: shirtDressBlueHanger,
     tagline: "Buttoned ease",
+    parentKey: "women",
+    sortOrder: 0,
   },
   {
     key: "luxury-kaftan",
     name: "Luxury Kaftan",
     image: luxuryKaftanModels,
     tagline: "Embellished modest elegance",
+    parentKey: "women",
+    sortOrder: 1,
   },
-  { key: "linen", name: "Linen", image: linenSetMint, tagline: "Easy linen separates" },
-  { key: "boubou", name: "Bou'bou", image: boubouEmbellishedColors, tagline: "Embellished ease" },
-  { key: "adire", name: "Adire", image: adireOrange, tagline: "Artisan dyed pieces" },
-  { key: "silk", name: "Silk", image: silkFlarePurple, tagline: "Silk flare dresses" },
+  {
+    key: "linen",
+    name: "Linen",
+    image: linenSetMint,
+    tagline: "Easy linen separates",
+    parentKey: "women",
+    sortOrder: 2,
+  },
+  {
+    key: "boubou",
+    name: "Bou'bou",
+    image: boubouEmbellishedColors,
+    tagline: "Embellished ease",
+    parentKey: "women",
+    sortOrder: 3,
+  },
+  {
+    key: "adire",
+    name: "Adire",
+    image: adireOrange,
+    tagline: "Artisan dyed pieces",
+    parentKey: "women",
+    sortOrder: 4,
+  },
+  {
+    key: "silk",
+    name: "Silk",
+    image: silkFlarePurple,
+    tagline: "Silk flare dresses",
+    parentKey: "women",
+    sortOrder: 5,
+  },
 ];
 
 const WOMEN_SIZES = ["XS", "S", "M", "L", "XL"];

@@ -6,6 +6,7 @@ import { ProductCard } from "@/components/site/ProductCard";
 import { useSiteContent } from "@/hooks/use-site-content";
 import { useStoreCategories } from "@/hooks/use-store-categories";
 import { useStoreProducts } from "@/hooks/use-store-products";
+import { topLevelCategories } from "@/lib/category-utils";
 import type { AdminCategory, AdminProduct, ContentState } from "@/lib/admin-data";
 import { genericWhatsAppUrl, WHATSAPP_DISPLAY } from "@/lib/whatsapp";
 import atelierBoardroomWeekend from "@/assets/atelier-boardroom-weekend.mp4";
@@ -249,9 +250,17 @@ function Categories({
   categories: AdminCategory[];
 }) {
   if (categories.length === 0) return null;
+  const lgGridClass =
+    categories.length === 1
+      ? "lg:grid-cols-1"
+      : categories.length === 2
+        ? "lg:grid-cols-2"
+        : categories.length === 3
+          ? "lg:grid-cols-3"
+          : "lg:grid-cols-4";
 
   return (
-    <section className="mx-auto max-w-[1280px] px-6 py-18 lg:px-12 lg:py-24">
+    <section className="px-6 py-18 lg:px-12 lg:py-24">
       <div className="mb-10 flex items-end justify-between reveal">
         <div>
           <p className="eyebrow mb-4">{content.home.collectionsEyebrow}</p>
@@ -266,7 +275,7 @@ function Categories({
           {content.home.collectionsCta} →
         </Link>
       </div>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5 lg:gap-4">
+      <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${lgGridClass} lg:gap-4`}>
         {categories.map((c, i) => (
           <Link
             to="/shop/$category"
@@ -602,6 +611,7 @@ function VisitStore({ content }: { content: ContentState }) {
 function Index() {
   const content = useSiteContent();
   const categories = useStoreCategories();
+  const homepageCategories = topLevelCategories(categories);
   const { products } = useStoreProducts();
   const revealKey = products.map((product) => product.id).join("|");
   const ref = useReveal(revealKey);
@@ -615,7 +625,7 @@ function Index() {
     <div ref={ref} className="scroll-smooth">
       <Hero content={content} />
       <Marquee content={content} />
-      <Categories content={content} categories={categories} />
+      <Categories content={content} categories={homepageCategories} />
       <ProductGrid
         items={arrivalProducts}
         eyebrow={content.home.newArrivalsEyebrow}
@@ -640,7 +650,7 @@ function Index() {
       <VideoLookbook content={content} />
       <Why content={content} />
       <Testimonials content={content} />
-      <Instagram content={content} categories={categories} />
+      <Instagram content={content} categories={homepageCategories} />
       <VisitStore content={content} />
     </div>
   );
