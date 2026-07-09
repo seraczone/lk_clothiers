@@ -819,7 +819,9 @@ function ProductsTab({
 
       <Panel title="Create Product Categories">
         <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
-          Add a new category here, then select it when creating or editing products.
+          Add a top-level category by leaving Parent Category as None. To create a child category,
+          choose an existing top-level category as its parent, or use Add Child beside a category
+          below.
         </p>
         <form onSubmit={saveCategory} className="grid gap-3 lg:grid-cols-6">
           <Field
@@ -842,7 +844,7 @@ function ProductsTab({
           />
           <label className="block">
             <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              Parent
+              Parent Category
             </span>
             <select
               value={categoryDraft.parentKey ?? ""}
@@ -854,13 +856,16 @@ function ProductsTab({
               }
               className="h-11 w-full rounded-[6px] border border-border bg-background px-3 text-sm outline-none focus:border-foreground"
             >
-              <option value="">None</option>
+              <option value="">None - Top-level category</option>
               {parentCategoryOptions.map((item) => (
                 <option key={item.key} value={item.key}>
                   {item.name}
                 </option>
               ))}
             </select>
+            <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+              Choose a parent to make this a child category.
+            </span>
           </label>
           <Field
             label="Image URL"
@@ -935,6 +940,26 @@ function ProductsTab({
               {item.parentKey
                 ? `${categoryByKey(categories, item.parentKey)?.name ?? "Parent"} / ${item.name}`
                 : item.name}
+              {!item.parentKey && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategoryDraft({
+                      key: "",
+                      name: "",
+                      image: "",
+                      tagline: "",
+                      parentKey: item.key,
+                      sortOrder: undefined,
+                    });
+                    setMutationError("");
+                    setMutationSuccess(`Creating a child category under ${item.name}.`);
+                  }}
+                  className="uppercase tracking-[0.16em] text-foreground"
+                >
+                  Add Child
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -1430,7 +1455,7 @@ function ProductEditor({
             />
             <label className="block">
               <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Category
+                Main Category
               </span>
               <select
                 value={selectedParentKey}
@@ -1449,11 +1474,14 @@ function ProductEditor({
                     </option>
                   ))}
               </select>
+              <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                If this category has children, choose the product subcategory next.
+              </span>
             </label>
             {selectedChildren.length > 0 && (
               <label className="block">
                 <span className="mb-1.5 block text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                  Subcategory
+                  Product Subcategory
                 </span>
                 <select
                   value={draft.category}
@@ -1466,6 +1494,9 @@ function ProductEditor({
                     </option>
                   ))}
                 </select>
+                <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                  Products are saved to this child category, not the parent.
+                </span>
               </label>
             )}
             <label className="mt-7 flex items-center gap-3 text-sm">
