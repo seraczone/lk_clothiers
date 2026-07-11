@@ -55,6 +55,7 @@ import {
 } from "@/lib/category-utils";
 import { isSupabaseConfigured, supabase, supabaseConfigError } from "@/lib/supabase";
 import {
+  deleteOrder,
   deliveryMethodLabels,
   formatOrderDate,
   listOrders,
@@ -676,10 +677,23 @@ function ProductsTab({
     }
 
     try {
+      const image = categoryDraft.image.trim();
+      if (!image) {
+        setMutationError("Upload a category image or paste a public image URL before saving.");
+        setMutationSuccess("");
+        return;
+      }
+      if (!isPublicImageUrl(image)) {
+        setMutationError(
+          "Category image must be a public http or https URL from Supabase storage.",
+        );
+        setMutationSuccess("");
+        return;
+      }
       const savedCategory = await upsertAdminCategory({
         key,
         name: categoryDraft.name.trim(),
-        image: categoryDraft.image.trim() || products[0]?.image || "",
+        image,
         tagline: categoryDraft.tagline.trim() || "LK collection",
         parentKey: categoryDraft.parentKey || null,
         sortOrder:
@@ -870,7 +884,7 @@ function ProductsTab({
           <Field
             label="Image URL"
             value={categoryDraft.image}
-            placeholder="Optional"
+            placeholder="Upload image or paste public URL"
             onChange={(value) => setCategoryDraft((current) => ({ ...current, image: value }))}
           />
           <Field
@@ -926,8 +940,8 @@ function ProductsTab({
               />
             </label>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Upload fills the Image URL field. Save the category after upload so it persists in
-              Supabase.
+              Upload sends the image to Supabase storage and fills the Image URL field. Save the
+              category after upload so the category row is saved to Supabase.
             </p>
           </div>
         </div>
@@ -2136,6 +2150,7 @@ function OrdersTab() {
   const [selectedOrder, setSelectedOrder] = useState<SavedOrder | null>(null);
   const [orderError, setOrderError] = useState("");
   const [updatingOrderId, setUpdatingOrderId] = useState("");
+  const [deletingOrderId, setDeletingOrderId] = useState("");
   const rows: Array<{
     id: string;
     customer: string;
@@ -2154,10 +2169,6 @@ function OrdersTab() {
       date: formatOrderDate(order.createdAt),
       order,
     })),
-    { id: "LK-10456", customer: "Aisha A.", total: 145000, status: "Processing" },
-    { id: "LK-10455", customer: "Halima O.", total: 185000, status: "Pending" },
-    { id: "LK-10454", customer: "Fatima B.", total: 220000, status: "Delivered" },
-    { id: "LK-10453", customer: "Zainab K.", total: 78000, status: "Cancelled" },
   ];
 
   useEffect(() => {
@@ -2192,6 +2203,21 @@ function OrdersTab() {
     }
   };
 
+  const handleOrderDelete = async (order: SavedOrder) => {
+    if (!window.confirm(`Delete order ${order.id}? This removes it from Supabase orders.`)) return;
+    setOrderError("");
+    setDeletingOrderId(order.id);
+    try {
+      await deleteOrder(order);
+      setOrders((current) => current.filter((item) => item.id !== order.id));
+      setSelectedOrder((current) => (current?.id === order.id ? null : current));
+    } catch (error) {
+      setOrderError(error instanceof Error ? error.message : "Unable to delete this order.");
+    } finally {
+      setDeletingOrderId("");
+    }
+  };
+
   return (
     <Panel title="Orders MVP">
       {orderError && (
@@ -2213,47 +2239,67 @@ function OrdersTab() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr key={row.id} className="border-t border-border">
-                <td className="py-4 font-display text-base">{row.id}</td>
-                <td className="py-4">{row.date ?? "Stored order"}</td>
-                <td className="py-4">{row.customer}</td>
-                <td className="py-4">{row.delivery ?? "Not captured"}</td>
-                <td className="py-4 tabular-nums">{ngn(row.total)}</td>
-                <td className="py-4">
-                  {row.order ? (
-                    <select
-                      value={row.order.status}
-                      disabled={updatingOrderId === row.order.id}
-                      onChange={(event) =>
-                        handleOrderStatusChange(
-                          row.order as SavedOrder,
-                          event.target.value as SavedOrder["status"],
-                        )
-                      }
-                      className="h-9 rounded-[6px] border border-border bg-background px-2 text-xs outline-none focus:border-foreground disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <option>Pending</option>
-                      <option>Processing</option>
-                      <option>Delivered</option>
-                      <option>Cancelled</option>
-                    </select>
-                  ) : (
-                    row.status
-                  )}
-                </td>
-                <td className="py-4">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedOrder(row.order ?? null)}
-                    disabled={!row.order}
-                    className="text-xs uppercase tracking-[0.18em] text-[color:var(--accent)] disabled:cursor-not-allowed disabled:text-muted-foreground"
-                  >
-                    View
-                  </button>
+            {rows.length === 0 ? (
+              <tr className="border-t border-border">
+                <td colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
+                  No saved orders yet.
                 </td>
               </tr>
-            ))}
+            ) : (
+              rows.map((row) => (
+                <tr key={row.id} className="border-t border-border">
+                  <td className="py-4 font-display text-base">{row.id}</td>
+                  <td className="py-4">{row.date ?? "Stored order"}</td>
+                  <td className="py-4">{row.customer}</td>
+                  <td className="py-4">{row.delivery ?? "Not captured"}</td>
+                  <td className="py-4 tabular-nums">{ngn(row.total)}</td>
+                  <td className="py-4">
+                    {row.order ? (
+                      <select
+                        value={row.order.status}
+                        disabled={updatingOrderId === row.order.id}
+                        onChange={(event) =>
+                          handleOrderStatusChange(
+                            row.order as SavedOrder,
+                            event.target.value as SavedOrder["status"],
+                          )
+                        }
+                        className="h-9 rounded-[6px] border border-border bg-background px-2 text-xs outline-none focus:border-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <option>Pending</option>
+                        <option>Processing</option>
+                        <option>Delivered</option>
+                        <option>Cancelled</option>
+                      </select>
+                    ) : (
+                      row.status
+                    )}
+                  </td>
+                  <td className="py-4">
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedOrder(row.order ?? null)}
+                        disabled={!row.order}
+                        className="text-xs uppercase tracking-[0.18em] text-[color:var(--accent)] disabled:cursor-not-allowed disabled:text-muted-foreground"
+                      >
+                        View
+                      </button>
+                      {row.order && (
+                        <button
+                          type="button"
+                          onClick={() => handleOrderDelete(row.order as SavedOrder)}
+                          disabled={deletingOrderId === row.order.id}
+                          className="text-xs uppercase tracking-[0.18em] text-[color:var(--destructive)] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {deletingOrderId === row.order.id ? "Deleting..." : "Delete"}
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -2625,6 +2671,15 @@ function slugify(value: string) {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
+}
+
+function isPublicImageUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 function setValueAtPath(source: unknown, path: Array<string | number>, value: unknown): unknown {

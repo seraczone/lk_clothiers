@@ -32,7 +32,7 @@ export function Header() {
         >
           {open ? <X size={20} strokeWidth={1.8} /> : <Menu size={22} strokeWidth={1.8} />}
         </button>
-        <nav className="hidden md:flex gap-6 text-[11px] uppercase tracking-[0.2em] text-foreground/80">
+        <nav className="hidden md:flex gap-6 text-[13px] uppercase tracking-[0.18em] text-foreground/80">
           {primaryLinks.slice(0, 3).map((l) =>
             l.to === "/shop" ? (
               <div key={l.to} className="group relative">
@@ -118,7 +118,7 @@ export function Header() {
             className="h-20 w-52 object-contain mix-blend-multiply transition-transform duration-500 hover:scale-[1.03] md:h-24 md:w-60"
           />
         </Link>
-        <nav className="hidden md:flex gap-6 text-[11px] uppercase tracking-[0.2em] text-foreground/80 items-center">
+        <nav className="hidden md:flex gap-6 text-[13px] uppercase tracking-[0.18em] text-foreground/80 items-center">
           {primaryLinks.slice(3).map((l) => (
             <Link
               key={l.to}
@@ -158,7 +158,7 @@ export function Header() {
             {primaryLinks.map((l) =>
               l.to === "/shop" && topCategories.length > 0 ? (
                 <details key={l.to} className="group/shop">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-1 transition-colors hover:text-[color:var(--accent)]">
+                  <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-[4px] px-2 py-1.5 transition-colors hover:bg-[color:var(--cream)] hover:text-[color:var(--accent)]">
                     <span>{l.label}</span>
                     <ChevronDown
                       size={15}
@@ -168,7 +168,7 @@ export function Header() {
                   </summary>
                   <div className="mt-2 border-l border-border pl-3 normal-case tracking-normal">
                     <details className="group/categories-mobile">
-                      <summary className="flex cursor-pointer list-none items-center gap-1.5 py-1 text-sm transition-colors hover:text-[color:var(--accent)]">
+                      <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-[4px] px-2 py-1.5 text-sm transition-colors hover:bg-[color:var(--cream)] hover:text-[color:var(--accent)]">
                         <span>Categories</span>
                         <ChevronDown
                           size={14}
@@ -205,8 +205,7 @@ export function Header() {
                               </summary>
                               <div className="mt-2 grid gap-2 border-l border-border/70 pl-3 text-xs normal-case tracking-normal">
                                 <Link
-                                  to="/shop/$category"
-                                  params={{ category: category.key }}
+                                  to="/shop"
                                   onClick={() => setOpen(false)}
                                   className={dropdownItemClass}
                                 >

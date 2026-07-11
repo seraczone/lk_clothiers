@@ -132,6 +132,17 @@ export async function updateOrderStatus(
   return updatedOrder;
 }
 
+export async function deleteOrder(order: SavedOrder): Promise<void> {
+  if (isSupabaseConfigured && supabase) {
+    const { error } = await supabase.from("orders").delete().eq("id", order.id);
+    if (error) {
+      throw new Error(`Order delete failed: ${error.message}`);
+    }
+  }
+
+  deleteLocalOrder(order.id);
+}
+
 function updateLocalOrder(order: SavedOrder) {
   if (typeof window === "undefined") return;
   const orders = readLocalOrders();
@@ -141,6 +152,14 @@ function updateLocalOrder(order: SavedOrder) {
       ? orders.map((item) => (item.id === order.id ? order : item))
       : [order, ...orders];
   window.localStorage.setItem(ordersKey, JSON.stringify(nextOrders.slice(0, 60)));
+}
+
+function deleteLocalOrder(id: string) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(
+    ordersKey,
+    JSON.stringify(readLocalOrders().filter((order) => order.id !== id)),
+  );
 }
 
 export function buildCustomerEmailBody(order: SavedOrder) {

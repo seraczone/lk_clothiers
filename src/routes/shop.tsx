@@ -43,19 +43,32 @@ function ShopPage() {
   const topCategories = topLevelCategories(categories);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"new" | "low" | "high">("new");
-  const [max, setMax] = useState(300000);
+  const [max, setMax] = useState<number | null>(null);
+  const highestProductPrice = useMemo(
+    () => Math.max(300000, ...shopProducts.map((product) => product.price)),
+    [shopProducts],
+  );
+  const effectiveMax = max ?? highestProductPrice;
 
   const filtered = useMemo(() => {
     const term = query.toLowerCase().trim();
     let list = shopProducts.filter(
-      (p) => p.price <= max && (p.name.toLowerCase().includes(term) || p.category.includes(term)),
+      (p) =>
+        p.price <= effectiveMax &&
+        (p.name.toLowerCase().includes(term) || p.category.includes(term)),
     );
     if (sort === "low") list = [...list].sort((a, b) => a.price - b.price);
     if (sort === "high") list = [...list].sort((a, b) => b.price - a.price);
     return list;
-  }, [query, sort, max, shopProducts]);
+  }, [query, sort, effectiveMax, shopProducts]);
   const revealKey = filtered.map((product) => product.id).join("|");
   const ref = useReveal<HTMLDivElement>(revealKey);
+
+  const resetFilters = () => {
+    setQuery("");
+    setSort("new");
+    setMax(null);
+  };
 
   if (categoryMatch) {
     return <Outlet />;
@@ -79,6 +92,7 @@ function ShopPage() {
           </div>
           <Link
             to="/shop"
+            onClick={resetFilters}
             className="hidden md:inline-block lk-link text-xs uppercase tracking-[0.25em]"
           >
             {content.shop.viewAll}
@@ -125,6 +139,7 @@ function ShopPage() {
               <div className="flex flex-wrap lg:flex-col gap-2">
                 <Link
                   to="/shop"
+                  onClick={resetFilters}
                   className="px-3 py-2 border border-foreground bg-foreground text-background text-[10px] uppercase tracking-[0.2em] text-center transition-colors"
                 >
                   {content.shop.allPieces}
@@ -178,14 +193,14 @@ function ShopPage() {
             </div>
             <div>
               <label className="eyebrow block mb-3">
-                {content.shop.maxPriceLabel} - {ngn(max)}
+                {content.shop.maxPriceLabel} - {ngn(effectiveMax)}
               </label>
               <input
                 type="range"
                 min={40000}
-                max={300000}
+                max={highestProductPrice}
                 step={5000}
-                value={max}
+                value={effectiveMax}
                 onChange={(e) => setMax(Number(e.target.value))}
                 className="w-full accent-[color:var(--accent)]"
               />
@@ -199,7 +214,7 @@ function ShopPage() {
               {filtered.length} pieces
             </p>
             <p className="hidden text-xs text-muted-foreground sm:block">
-              {content.shop.resultsHelper} {ngn(max)}
+              {content.shop.resultsHelper} {ngn(effectiveMax)}
             </p>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
